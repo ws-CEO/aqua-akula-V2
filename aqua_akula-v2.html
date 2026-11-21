@@ -1,0 +1,3079 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アクア・アクーラ ver1.0.1 | Aqua Akula AI (Offline)</title>
+  <style>
+    :root {
+      --bg-ocean: #e8f8ff;
+      --bg-panel: #ffffff;
+      --bg-card: #eefaff;
+      --neon-cyan: #0891b2;
+      --neon-blue: #0369a1;
+      --shark-accent: #f43f5e;
+      --text-main: #0b2b40;
+      --text-muted: #4f7891;
+      --border-glow: #b7e4f3;
+      --font-ui: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    /* 表示言語ごとにフォントを切り替え（日本語の漢字が中国語字形になるのを防ぐ） */
+    html[lang="ja"] { --font-ui: 'Segoe UI', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Hiragino Kaku Gothic ProN', sans-serif; }
+    html[lang="en"] { --font-ui: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+    html[lang="ko"] { --font-ui: 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+    html[lang="zh"] { --font-ui: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-ui);
+    }
+
+    body {
+      background-color: var(--bg-ocean);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+      background-image:
+        radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.95) 0%, transparent 60%),
+        radial-gradient(ellipse at 0% 110%, rgba(14, 165, 233, 0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 100% 90%, rgba(6, 182, 212, 0.16) 0%, transparent 50%),
+        linear-gradient(180deg, #f4fcff 0%, #dcf3fd 50%, #bfe8fa 100%);
+    }
+
+    /* Ocean Canvas (すいすい泳ぐアクア・アクーラ) */
+    #oceanCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    header, .chat-wrapper, .mailbox-fab, .mailbox-panel, .settings-panel {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Header */
+    header {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 4px 18px rgba(3, 105, 161, 0.12);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .shark-logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #ffffff, #d8f2ff);
+      border: 2px solid #0ea5e9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 18px rgba(14, 165, 233, 0.35);
+      animation: pulseGlow 3s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 8px rgba(14, 165, 233, 0.25); }
+      100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.55); }
+    }
+
+    .header-title h1 {
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #075985, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .header-title span {
+      font-size: 0.8rem;
+      color: var(--neon-cyan);
+      font-family: monospace;
+      display: block;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .header-title .version-badge {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #0369a1;
+      background: linear-gradient(135deg, #ffffff, #d8f2ff);
+      border: 1px solid #8fd5ea;
+      border-radius: 10px 10px 10px 3px;
+      padding: 2px 8px;
+      line-height: 1.35;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(3, 105, 161, 0.12);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: #0b5c74;
+      background: linear-gradient(135deg, #ffffff 0%, #e4f7ff 100%);
+      border: 1px solid #8fd5ea;
+      padding: 6px 14px 6px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(3, 105, 161, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #06b6d4;
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: sonarPulse 2s infinite;
+    }
+
+    @keyframes sonarPulse {
+      0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+      70% { box-shadow: 0 0 0 7px rgba(6, 182, 212, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+    }
+
+    .lang-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-switch {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-glow);
+      color: #5b87a0;
+      border-radius: 6px;
+      padding: 6px 9px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      font-family: monospace;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-switch:hover {
+      color: #0369a1;
+      border-color: #22d3ee;
+    }
+
+    .lang-switch.active {
+      background: linear-gradient(135deg, #22d3ee, #0284c7);
+      border-color: #0ea5e9;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35);
+    }
+
+    /* 設定パネル（右上の歯車から開く） */
+    .settings-toggle.active {
+      background: linear-gradient(135deg, #22d3ee, #0284c7);
+      border-color: #0ea5e9;
+      color: #ffffff;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 84px;
+      right: 18px;
+      z-index: 45;
+      width: min(330px, calc(100vw - 28px));
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px 14px 4px 14px;
+      box-shadow: 0 18px 40px rgba(3, 105, 161, 0.28);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .settings-panel.open {
+      display: flex;
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #0c4a6e, #0369a1);
+      color: #ffffff;
+    }
+
+    .settings-head h3 {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .settings-close {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .settings-close:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .settings-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 13px 14px 15px;
+    }
+
+    .settings-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .settings-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .settings-section .lang-group {
+      border: none;
+      background: transparent;
+      padding: 0;
+      gap: 6px;
+    }
+
+    .settings-section .lang-switch {
+      flex: 1;
+      text-align: center;
+    }
+
+    .settings-select {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 8px;
+      padding: 7px 10px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      font-family: "MS Gothic", "Osaka", monospace;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .settings-select:focus-visible {
+      border-color: #22d3ee;
+      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.25);
+    }
+
+    html[data-theme="dark"] .settings-select option {
+      background: #0d2433;
+      color: #dcf3fb;
+    }
+
+    .settings-hint {
+      margin: 0;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .settings-save {
+      align-self: flex-start;
+      background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    }
+
+    .settings-save:hover {
+      filter: brightness(1.08);
+    }
+
+    html[data-theme="dark"] .settings-panel {
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (max-width: 480px) {
+      .settings-panel {
+        top: 118px;
+        right: 12px;
+      }
+    }
+
+    /* 端っこのメールボックス */
+    .mailbox-fab {
+      position: fixed;
+      right: 18px;
+      bottom: 20px;
+      z-index: 40;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: linear-gradient(155deg, #0c4a6e 0%, #0369a1 55%, #0ea5e9 100%);
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 22px rgba(3, 105, 161, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    }
+
+    .mailbox-fab:hover {
+      transform: translateY(-2px) scale(1.04);
+      filter: brightness(1.08);
+      box-shadow: 0 12px 26px rgba(3, 105, 161, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .mailbox-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 10px;
+      background: var(--shark-accent);
+      color: #ffffff;
+      font: 800 11px/20px monospace;
+      text-align: center;
+      display: none;
+      box-shadow: 0 2px 6px rgba(244, 63, 94, 0.5);
+    }
+
+    .mailbox-badge.show {
+      display: block;
+    }
+
+    .mailbox-panel {
+      position: fixed;
+      right: 18px;
+      bottom: 84px;
+      z-index: 41;
+      width: min(340px, calc(100vw - 28px));
+      max-height: min(70vh, 520px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 14px 14px 14px 4px;
+      box-shadow: 0 18px 40px rgba(3, 105, 161, 0.28);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .mailbox-panel.open {
+      display: flex;
+    }
+
+    .mailbox-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #0c4a6e, #0369a1);
+      color: #ffffff;
+    }
+
+    .mailbox-head h3 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .mailbox-close {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0 2px;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+
+    .mailbox-close:hover {
+      opacity: 1;
+    }
+
+    .mailbox-hint {
+      padding: 8px 14px 0;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .mailbox-list {
+      flex: 1;
+      min-height: 64px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mailbox-empty {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .mail-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+
+    .mail-item-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--neon-cyan);
+      font-weight: 700;
+    }
+
+    .mail-item-subject {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .mail-item-subject-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mail-item-from {
+      flex-shrink: 0;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      border: 1px solid transparent;
+    }
+
+    .mail-item-from.official {
+      color: var(--shark-accent);
+      background: rgba(244, 63, 94, 0.12);
+      border-color: rgba(244, 63, 94, 0.4);
+    }
+
+    .mail-item-from.self {
+      color: var(--neon-cyan);
+      background: rgba(14, 165, 233, 0.12);
+      border-color: rgba(14, 165, 233, 0.35);
+    }
+
+    .mail-item.from-official {
+      border-left: 3px solid var(--shark-accent);
+    }
+
+    .mail-item.from-self {
+      border-left: 3px solid #38bdf8;
+    }
+
+    .mailbox-fab.ping {
+      animation: mailboxPing 1s ease-out 2;
+    }
+
+    @keyframes mailboxPing {
+      0%, 100% { transform: translateY(0) scale(1); }
+      20% { transform: translateY(-6px) scale(1.08); }
+      40% { transform: translateY(0) scale(1); }
+      60% { transform: translateY(-3px) scale(1.04); }
+    }
+
+    .mail-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .mail-item-time {
+      color: var(--text-muted);
+      font: 0.72rem monospace;
+    }
+
+    .mail-del {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1;
+      padding: 0 2px;
+      cursor: pointer;
+    }
+
+    .mail-del:hover {
+      color: var(--shark-accent);
+    }
+
+    .mail-item-body {
+      margin-top: 4px;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 96px;
+      overflow-y: auto;
+    }
+
+    .mailbox-form {
+      border-top: 1px solid var(--border-glow);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mailbox-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 8px;
+      padding: 7px 10px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .mailbox-input:focus {
+      border-color: #22d3ee;
+    }
+
+    .mailbox-textarea {
+      resize: vertical;
+      min-height: 64px;
+      max-height: 140px;
+      font-family: inherit;
+    }
+
+    .mailbox-status {
+      min-height: 1em;
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+    }
+
+    .mailbox-send {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    }
+
+    .mailbox-send:hover {
+      filter: brightness(1.08);
+    }
+
+    html[data-theme="dark"] .mailbox-fab {
+      border-color: #1c5a70;
+    }
+
+    html[data-theme="dark"] .mailbox-panel {
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .theme-toggle {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-glow);
+      border-radius: 50%;
+      color: #0369a1;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: #22d3ee;
+      color: #0891b2;
+      box-shadow: 0 3px 10px rgba(6, 182, 212, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .theme-toggle .icon-sun { display: none; }
+    html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+    html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+
+    .mode-select {
+      height: 34px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-glow);
+      border-radius: 18px;
+      color: #0b5c74;
+      padding: 0 8px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .mode-select:hover {
+      border-color: #22d3ee;
+      color: #0369a1;
+      box-shadow: 0 3px 10px rgba(6, 182, 212, 0.25);
+    }
+
+    .mode-select:focus-visible {
+      outline: 2px solid #22d3ee;
+      outline-offset: 2px;
+    }
+
+    /* Main Container */
+    .chat-wrapper {
+      max-width: 900px;
+      width: 100%;
+      margin: 20px auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 16px;
+    }
+
+    .chat-box {
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0) 70%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(243, 251, 255, 0.86) 100%);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      flex: 1;
+      height: 520px;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: inset 0 2px 12px rgba(3, 105, 161, 0.08);
+      scroll-behavior: smooth;
+    }
+
+    /* Scrollbar */
+    .chat-box::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-box::-webkit-scrollbar-thumb {
+      background: #a9d7e8;
+      border-radius: 3px;
+    }
+
+    /* Messages */
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: msgFade 0.25s ease-out;
+    }
+
+    @keyframes msgFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.bot {
+      align-self: flex-start;
+    }
+
+    .msg-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--border-glow);
+    }
+
+    .msg-row.bot .msg-avatar {
+      background: #e3f6ff;
+      border-color: #22d3ee;
+    }
+
+    .msg-row.user .msg-avatar {
+      background: #dbeafe;
+      border-color: #3b82f6;
+    }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      word-break: break-word;
+      position: relative;
+    }
+
+    /* メッセージごとに言語別フォント（混在チャットでも字形が崩れない） */
+    .msg-content[lang="ja"] { font-family: 'Segoe UI', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Hiragino Kaku Gothic ProN', sans-serif; }
+    .msg-content[lang="en"] { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+    .msg-content[lang="ko"] { font-family: 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+    .msg-content[lang="zh"] { font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+
+    /* 下端の角を尖らせ、サメの尾ビレのような小さな突起を付ける */
+    .msg-row.bot .msg-bubble {
+      background: #eef8ff;
+      border: 1px solid #c6e7f6;
+      border-radius: 16px 16px 16px 4px;
+      color: #103a52;
+      box-shadow: 0 4px 12px rgba(3, 105, 161, 0.1);
+    }
+
+    .msg-row.bot .msg-bubble::after {
+      content: '';
+      position: absolute;
+      left: -5px;
+      bottom: 7px;
+      width: 10px;
+      height: 10px;
+      background: #eef8ff;
+      border-left: 1px solid #c6e7f6;
+      border-bottom: 1px solid #c6e7f6;
+      transform: rotate(45deg);
+    }
+
+    .msg-row.user .msg-bubble {
+      background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
+      border-radius: 16px 16px 4px 16px;
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+    }
+
+    .msg-row.user .msg-bubble::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      bottom: 7px;
+      width: 10px;
+      height: 10px;
+      background: #1d4ed8;
+      transform: rotate(45deg);
+    }
+
+    .shark-radar-tag {
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+      display: block;
+      margin-bottom: 6px;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* Quick Actions */
+    .quick-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      overflow-x: auto;
+      padding: 9px 0 4px;
+    }
+
+    .quick-bar::-webkit-scrollbar {
+      height: 5px;
+    }
+    .quick-bar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .quick-bar::-webkit-scrollbar-thumb {
+      background: #a9d7e8;
+      border-radius: 3px;
+    }
+
+    .quick-chip {
+      position: relative;
+      background: linear-gradient(180deg, #ffffff 0%, #eaf9ff 100%);
+      border: 1px solid var(--border-glow);
+      color: #4f7891;
+      border-radius: 16px 16px 3px 16px;
+      padding: 7px 15px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(3, 105, 161, 0.08);
+    }
+
+    /* ホバーで海面から背ビレが顔を出す */
+    .quick-chip::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 16px;
+      width: 18px;
+      height: 9px;
+      background: linear-gradient(135deg, #0369a1, #22d3ee);
+      clip-path: polygon(0 100%, 45% 0, 100% 100%);
+      opacity: 0;
+      transform: translateY(5px) scaleX(0.4);
+      transform-origin: bottom center;
+      transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .quick-chip:hover {
+      border-color: #22d3ee;
+      color: #0369a1;
+      background: linear-gradient(180deg, #f7fdff 0%, #dcf5ff 100%);
+      box-shadow: 0 6px 14px rgba(3, 105, 161, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .quick-chip:hover::after {
+      opacity: 1;
+      transform: translateY(0) scaleX(1);
+    }
+
+    /* Input Area */
+    .input-bar {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 8px 12px;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+
+    .input-bar:focus-within {
+      border-color: #22d3ee;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 1rem;
+      min-width: 0;
+    }
+
+    .chat-input::placeholder {
+      color: #7fa4b8;
+    }
+
+    .btn-send {
+      position: relative;
+      background: linear-gradient(155deg, #0c4a6e 0%, #0369a1 48%, #0ea5e9 100%);
+      border: none;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 10px 18px 10px 20px;
+      border-radius: 12px 4px 12px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+      box-shadow: 0 6px 16px rgba(3, 105, 161, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      text-shadow: 0 1px 2px rgba(3, 55, 85, 0.4);
+    }
+
+    /* 送信ボタンから突き出る背ビレ */
+    .btn-send::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      right: 18px;
+      width: 22px;
+      height: 10px;
+      background: linear-gradient(135deg, #0c4a6e, #06b6d4);
+      clip-path: polygon(0 100%, 50% 0, 100% 100%);
+      transition: transform 0.25s;
+      pointer-events: none;
+    }
+
+    .btn-send svg {
+      transition: transform 0.25s;
+    }
+
+    .btn-send:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 9px 22px rgba(3, 105, 161, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .btn-send:hover::before {
+      transform: translateX(2px) rotate(-3deg);
+    }
+
+    .btn-send:hover svg {
+      transform: translateX(2px) rotate(-6deg);
+    }
+
+    /* 辞書検索トグル */
+    .btn-dict {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      background: rgba(224, 247, 253, 0.9);
+      color: #0369a1;
+      border: 1px solid #9ad9ec;
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-dict:hover {
+      border-color: #22d3ee;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .btn-dict.active {
+      background: linear-gradient(155deg, #0369a1 0%, #0ea5e9 100%);
+      border-color: #0369a1;
+      color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.32), 0 6px 16px rgba(3, 105, 161, 0.3);
+      text-shadow: 0 1px 2px rgba(3, 55, 85, 0.4);
+    }
+
+    .btn-dict svg {
+      transition: transform 0.25s;
+    }
+
+    .btn-dict.active svg,
+    .btn-dict:hover svg {
+      transform: rotate(-14deg);
+    }
+
+    .input-bar.dict-mode {
+      border-color: #22d3ee;
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.3);
+    }
+
+    /* Training Modal / Drawer */
+    .trainer-card {
+      margin-top: 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .trainer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .trainer-header h3 {
+      font-size: 0.95rem;
+      color: var(--neon-cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trainer-body {
+      display: none;
+      gap: 10px;
+      flex-direction: column;
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(3, 105, 161, 0.1);
+    }
+
+    .trainer-body.open {
+      display: flex;
+    }
+
+    .trainer-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .sub-input {
+      background: #f6fcff;
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+      min-width: 0;
+    }
+
+    .sub-input:focus {
+      border-color: #22d3ee;
+    }
+
+    .btn-learn {
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid #06b6d4;
+      color: #0e7490;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      align-self: flex-start;
+    }
+
+    .btn-learn:hover {
+      background: #06b6d4;
+      color: #ffffff;
+    }
+
+    /* Dark Mode */
+    html[data-theme="dark"] {
+      --bg-ocean: #06141d;
+      --bg-panel: #0d2433;
+      --bg-card: #102a39;
+      --neon-cyan: #22d3ee;
+      --neon-blue: #38bdf8;
+      --text-main: #dcf3fb;
+      --text-muted: #8fb4c6;
+      --border-glow: #1a4a5e;
+    }
+
+    html[data-theme="dark"] body {
+      background-image:
+        radial-gradient(ellipse at 50% -10%, rgba(34, 211, 238, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 0% 110%, rgba(14, 165, 233, 0.14) 0%, transparent 55%),
+        radial-gradient(ellipse at 100% 90%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+        linear-gradient(180deg, #04121b 0%, #071f2b 50%, #0a2b3a 100%);
+    }
+
+    html[data-theme="dark"] header {
+      background: rgba(7, 24, 34, 0.82);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    html[data-theme="dark"] .shark-logo {
+      background: linear-gradient(135deg, #0f3346, #0a2331);
+      border-color: #22d3ee;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+    }
+
+    html[data-theme="dark"] .header-title h1 {
+      /* background 一括指定は -webkit-background-clip: text をリセットして文字が消えるため background-image を使う */
+      background-image: linear-gradient(90deg, #7dd3fc, #22d3ee);
+    }
+
+    html[data-theme="dark"] .header-title .version-badge {
+      color: #7dd3fc;
+      background: linear-gradient(135deg, #102a39, #0b2230);
+      border-color: #1c5a70;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    html[data-theme="dark"] .header-status {
+      color: #9fdcf0;
+      background: linear-gradient(135deg, #0d2433, #102f40);
+      border-color: #1c5a70;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(125, 211, 252, 0.08);
+    }
+
+    html[data-theme="dark"] .lang-switch,
+    html[data-theme="dark"] .theme-toggle {
+      background: rgba(13, 36, 51, 0.85);
+      border-color: #1c5a70;
+      color: #8fb4c6;
+    }
+
+    html[data-theme="dark"] .theme-toggle {
+      color: #7dd3fc;
+    }
+
+    html[data-theme="dark"] .lang-switch:hover,
+    html[data-theme="dark"] .theme-toggle:hover {
+      color: #7dd3fc;
+      border-color: #22d3ee;
+    }
+
+    html[data-theme="dark"] .lang-switch.active {
+      background: linear-gradient(135deg, #0891b2, #0369a1);
+      border-color: #0ea5e9;
+      color: #ffffff;
+    }
+
+    html[data-theme="dark"] .settings-toggle.active {
+      background: linear-gradient(135deg, #0891b2, #0369a1);
+      border-color: #22d3ee;
+      color: #ffffff;
+    }
+
+    html[data-theme="dark"] .mode-select {
+      background: rgba(13, 36, 51, 0.85);
+      border-color: #1c5a70;
+      color: #9fdcf0;
+    }
+
+    html[data-theme="dark"] .mode-select:hover {
+      border-color: #22d3ee;
+      color: #7dd3fc;
+    }
+
+    html[data-theme="dark"] .mode-select option {
+      background: #0d2433;
+      color: #dcf3fb;
+    }
+
+    html[data-theme="dark"] .chat-box {
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(34, 211, 238, 0.08) 0%, transparent 70%),
+        linear-gradient(180deg, rgba(10, 34, 48, 0.82) 0%, rgba(7, 26, 37, 0.86) 100%);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    html[data-theme="dark"] .chat-box::-webkit-scrollbar-thumb,
+    html[data-theme="dark"] .quick-bar::-webkit-scrollbar-thumb {
+      background: #1d4f62;
+    }
+
+    html[data-theme="dark"] .msg-row.bot .msg-avatar {
+      background: #102a39;
+      border-color: #22d3ee;
+    }
+
+    html[data-theme="dark"] .msg-row.user .msg-avatar {
+      background: #17324d;
+      border-color: #3b82f6;
+    }
+
+    html[data-theme="dark"] .msg-row.bot .msg-bubble {
+      background: #0f2a38;
+      border-color: #1b4a5e;
+      color: #d9f1fb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    html[data-theme="dark"] .msg-row.bot .msg-bubble::after {
+      background: #0f2a38;
+      border-left-color: #1b4a5e;
+      border-bottom-color: #1b4a5e;
+    }
+
+    html[data-theme="dark"] .quick-chip {
+      background: linear-gradient(180deg, #0f2937 0%, #0b2130 100%);
+      color: #8fb4c6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    html[data-theme="dark"] .quick-chip:hover {
+      color: #7dd3fc;
+      background: linear-gradient(180deg, #13384b 0%, #0e2a3a 100%);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    html[data-theme="dark"] .input-bar {
+      background: rgba(13, 36, 51, 0.9);
+    }
+
+    html[data-theme="dark"] .chat-input::placeholder {
+      color: #5f889c;
+    }
+
+    html[data-theme="dark"] .btn-dict {
+      background: rgba(13, 47, 62, 0.9);
+      color: #7dd3fc;
+      border-color: #1c5a70;
+    }
+
+    html[data-theme="dark"] .trainer-body {
+      border-top-color: rgba(34, 211, 238, 0.12);
+    }
+
+    html[data-theme="dark"] .sub-input {
+      background: #0b2230;
+    }
+
+    html[data-theme="dark"] .btn-learn {
+      color: #67e8f9;
+    }
+
+    html[data-theme="dark"] .btn-learn:hover {
+      color: #ffffff;
+    }
+
+    @media (max-width: 820px) {
+      .header-status { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      header { padding: 12px 14px; }
+      .header-title span { display: none; }
+      .trainer-inputs { grid-template-columns: 1fr; }
+      .mode-select { font-size: 0.68rem; padding: 0 4px; }
+    }
+
+    @media (max-width: 480px) {
+      header { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+      .header-left { flex: 1 1 100%; justify-content: center; }
+      .header-right { flex: 1 1 100%; justify-content: center; gap: 8px; }
+      .header-title h1 { font-size: 1rem; }
+      .shark-logo { width: 38px; height: 38px; }
+      .lang-switch { padding: 5px 6px; font-size: 0.65rem; }
+      .mode-select { height: 30px; font-size: 0.65rem; padding: 0 4px; }
+      .mailbox-fab { right: 12px; bottom: 14px; width: 48px; height: 48px; }
+      .mailbox-panel { right: 12px; bottom: 72px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 深海遊泳キャンバス（すいすい泳ぐアクア・アクーラ） -->
+  <canvas id="oceanCanvas"></canvas>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="shark-logo">
+        <!-- SVG Shark Fin Icon -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M4 20C4 20 6 12 11 8C14 5.6 18 3 20 3C19 8 18 13 14 16C10 19 6 20 4 20Z" fill="#0284c7" opacity="0.9"/>
+          <path d="M4 20L11 15" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="header-title">
+        <div class="title-row">
+          <h1 id="appTitle">アクア・アクーラ</h1>
+          <span class="version-badge">v1.0.1</span>
+        </div>
+        <span>AQUA AKULA AI // OFFLINE LOCAL ENGINE // OFFICIAL</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-status">
+        <span class="status-dot"></span>
+        <span id="headerStatus">深海ソナー稼働中（API不採用）</span>
+      </div>
+      <select id="modeSelect" class="mode-select" title="応答モードを切り替え" aria-label="応答モード">
+        <option value="fast">高速モード</option>
+        <option value="pro">proモード</option>
+      </select>
+      <button class="theme-toggle" id="themeBtn" type="button" aria-pressed="false" title="ダークモードに切り替え">
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+        </svg>
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.2"/>
+          <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>
+        </svg>
+      </button>
+      <button class="theme-toggle settings-toggle" id="settingsBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPanel" title="設定">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 設定パネル（言語・文字コード） -->
+  <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="設定" aria-modal="false">
+    <div class="settings-head">
+      <h3>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1Z"/>
+        </svg>
+        <span id="settingsTitleText">設定</span>
+      </h3>
+      <button class="settings-close" id="settingsClose" type="button" aria-label="閉じる">×</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-label" id="langSectionLabel">言語設定</div>
+        <div class="lang-group" id="langGroup" role="group" aria-label="Language">
+          <button class="lang-switch" type="button" data-lang="ja">JA</button>
+          <button class="lang-switch" type="button" data-lang="en">EN</button>
+          <button class="lang-switch" type="button" data-lang="ko">KO</button>
+          <button class="lang-switch" type="button" data-lang="zh">ZH</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label" id="charsetSectionLabel">文字コード設定</div>
+        <select id="charsetSelect" class="settings-select" aria-label="文字コード選択">
+          <option value="ascii">ASCII</option>
+          <option value="shift_jis">Shift_JIS（CP932 / Windows-31J）</option>
+          <option value="euc-jp">EUC-JP</option>
+          <option value="iso-2022-jp">JISコード（ISO-2022-JP）</option>
+          <option value="utf-8" selected>UTF-8</option>
+          <option value="utf-16">UTF-16（UTF-16LE / UTF-16BE）</option>
+          <option value="utf-32">UTF-32</option>
+          <option value="iso-8859-1">ISO-8859-1（Latin-1）</option>
+          <option value="windows-1252">Windows-1252</option>
+          <option value="ebcdic">EBCDIC</option>
+        </select>
+        <p class="settings-hint" id="charsetHintText">ログ保存に使う文字コードを選択</p>
+        <button class="settings-save" id="saveLogBtn" type="button" title="会話ログを選択中の文字コードでダウンロード">ログ保存</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label" id="swimSectionLabel">サメ遊泳アニメーション</div>
+        <label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem; cursor:pointer; color:var(--text-main); font-weight:600; padding:4px 0;">
+          <span id="swimToggleText">背景ですいすい泳ぐ</span>
+          <input type="checkbox" id="swimToggle" checked style="width:18px; height:18px; accent-color:#0284c7; cursor:pointer;">
+        </label>
+        <p class="settings-hint" id="swimHintText">画面の空き場所をクリックするとエサ（クリスタル）を投げられます！</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Wrapper -->
+  <div class="chat-wrapper">
+    <div class="chat-box" id="chatBox">
+      <!-- Welcome Message -->
+      <div class="msg-row bot">
+        <div class="msg-avatar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#0284c7">
+            <path d="M4 20C4 20 6 12 11 8C14 5.6 18 3 20 3C19 8 18 13 14 16C10 19 6 20 4 20Z"/>
+          </svg>
+        </div>
+        <div class="msg-bubble" id="welcomeBubble"></div>
+      </div>
+    </div>
+
+    <!-- Quick Buttons -->
+    <div class="quick-bar" id="quickBar"></div>
+
+    <!-- Input Bar -->
+    <div class="input-bar">
+      <input type="text" id="userInput" class="chat-input" placeholder="アクア・アクーラに話しかける... (Enterで送信)">
+      <button class="btn-dict" id="dictBtn" type="button" aria-pressed="false" title="辞書だけを検索（次に入力した言葉）">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+          <circle cx="10.5" cy="10.5" r="6.5"/>
+          <path d="M15.5 15.5L21 21"/>
+        </svg>
+        <span id="dictLabel">辞書</span>
+      </button>
+      <button class="btn-send" id="sendBtn" type="button">
+        <span id="sendLabel">噛みつく</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <path d="M4 20C4 20 6 12 11 8C14 5.6 18 3 20 3C19 8 18 13 14 16C10 19 6 20 4 20Z" fill="currentColor"/>
+          <path d="M4 20L11 15" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Shark Trainer (Custom Local Knowledge) -->
+    <div class="trainer-card">
+      <div class="trainer-header" id="trainerHeader" role="button" tabindex="0">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span id="trainerTitleText">アクア・アクーラの調教（新しい言葉を教える）</span>
+        </h3>
+        <span id="trainerToggleIcon" style="color:var(--text-muted); font-size:0.8rem;">▼ 開く</span>
+      </div>
+      <div class="trainer-body" id="trainerBody">
+        <p id="trainerHelp" style="font-size:0.8rem; color:var(--text-muted);">
+          ユーザー自身で新しい単語と返答を覚えさせることができます（ブラウザのLocalStorageに保存され、即座に学習します）。
+        </p>
+        <div class="trainer-inputs">
+          <input type="text" id="trainKeyword" class="sub-input" placeholder="キーワード (例: 好きな寿司ネタ)">
+          <input type="text" id="trainResponse" class="sub-input" placeholder="アクア・アクーラの返答 (例: 中トロだ！一瞬で丸呑みしてやるぜ！)">
+        </div>
+        <button class="btn-learn" id="learnBtn" type="button">サメに学習させる ⚡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 端っこのメールボックス -->
+  <button class="mailbox-fab" id="mailboxBtn" type="button" aria-label="メールボックスを開く" aria-expanded="false" title="メールボックス">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2"/>
+      <path d="M3 7l9 6 9-6"/>
+    </svg>
+    <span class="mailbox-badge" id="mailboxBadge">0</span>
+  </button>
+
+  <div class="mailbox-panel" id="mailboxPanel" role="dialog" aria-label="メールボックス" aria-hidden="true">
+    <div class="mailbox-head">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M3 7l9 6 9-6"/>
+        </svg>
+        メールボックス
+      </h3>
+      <button class="mailbox-close" id="mailboxClose" type="button" aria-label="閉じる">×</button>
+    </div>
+    <div class="mailbox-hint">公式からのお知らせも届きます。メッセージはこの端末内に保存されます。</div>
+    <div class="mailbox-list" id="mailboxList"></div>
+    <div class="mailbox-form">
+      <input id="mailSubject" class="mailbox-input" type="text" maxlength="80" placeholder="件名（なくてもOK）" aria-label="件名">
+      <textarea id="mailBody" class="mailbox-input mailbox-textarea" maxlength="2000" placeholder="アクア・アクーラへのメッセージ" aria-label="本文"></textarea>
+      <div class="mailbox-status" id="mailboxStatus"></div>
+      <button class="mailbox-send" id="mailSendBtn" type="button">投函する</button>
+    </div>
+  </div>
+
+  <script>
+    /* ========================================================
+       UI strings (JA / EN / KO / ZH)
+    ======================================================== */
+    const LANGS = ['ja', 'en', 'ko', 'zh'];
+
+    const UI = {
+      ja: {
+        title: 'アクア・アクーラ',
+        status: '深海ソナー稼働中（API不採用）',
+        welcomeTag: 'AQUA_AKULA_CORE: 起動完了',
+        welcome: 'よう、獲物…じゃなくて相棒！オレは深海の王者<strong>「アクア・アクーラ」</strong>だ！🦈<br>' +
+          '外部APIなんぞに頼らねぇ、完全ローカル＆高速自律推論でオマエの質問をハントしてやるぜ。<br><br>' +
+          'AI開発のこと、深海のこと、雑談、何でも噛みついてきな！',
+        placeholder: 'アクア・アクーラに話しかける... (Enterで送信)',
+        send: '噛みつく',
+        dict: '辞書',
+        dictHint: '辞書だけを検索（次に入力した言葉）',
+        themeToDark: 'ダークモードに切り替え',
+        themeToLight: 'ライトモードに切り替え',
+        modeFast: '高速モード',
+        modePro: 'proモード',
+        modeHint: '応答モードを切り替え（高速 / pro解析）',
+        settings: '設定',
+        settingsLang: '言語設定',
+        settingsCharset: '文字コード設定',
+        settingsCharsetHint: 'ログ保存に使う文字コードを選択',
+        saveLog: 'ログ保存',
+        swimSection: 'サメ遊泳アニメーション',
+        swimToggle: '背景ですいすい泳ぐ',
+        swimHint: '画面の空き場所をクリックするとエサ（クリスタル）を投げられます！',
+        trainerTitle: 'アクア・アクーラの調教（新しい言葉を教える）',
+        trainerHelp: 'ユーザー自身で新しい単語と返答を覚えさせることができます（ブラウザのLocalStorageに保存され、即座に学習します）。',
+        kwPlaceholder: 'キーワード (例: 好きな寿司ネタ)',
+        resPlaceholder: 'アクア・アクーラの返答 (例: 中トロだ！一瞬で丸呑みしてやるぜ！)',
+        learn: 'サメに学習させる ⚡',
+        open: '▼ 開く',
+        close: '▲ 閉じる',
+        alertEmpty: 'キーワードと返答の両方を入力してください！',
+        trained: kw => `キーワード【${kw}】をメモリに焼き付けたぜ！今度話しかけてみろ！`
+      },
+      en: {
+        title: 'AQUA AKULA',
+        status: 'Deep-sea sonar active (no API)',
+        welcomeTag: 'AQUA_AKULA_CORE: ONLINE',
+        welcome: 'Yo, prey... I mean, partner! I am the king of the deep — <strong>AQUA AKULA</strong>! 🦈<br>' +
+          'No external APIs here. Pure local, high-speed autonomous inference: I hunt down every question you throw at me.<br><br>' +
+          'AI development, the deep sea, small talk — take a bite at anything!',
+        placeholder: 'Talk to Aqua Akula... (Enter to send)',
+        send: 'Bite',
+        dict: 'Dictionary',
+        dictHint: 'Search the dictionary only (next input)',
+        themeToDark: 'Switch to dark mode',
+        themeToLight: 'Switch to light mode',
+        modeFast: 'Fast mode',
+        modePro: 'Pro mode',
+        modeHint: 'Switch response mode (Fast / Pro analysis)',
+        settings: 'Settings',
+        settingsLang: 'Language',
+        settingsCharset: 'Character encoding',
+        settingsCharsetHint: 'Encoding used when saving the chat log',
+        saveLog: 'Save log',
+        swimSection: 'Shark Swimming Animation',
+        swimToggle: 'Swim in the background',
+        swimHint: 'Click empty space on the screen to toss crystal food!',
+        trainerTitle: 'Shark training (teach me new words)',
+        trainerHelp: 'Teach me your own keyword-to-reply pairs. They are saved in your browser\'s LocalStorage and learned instantly.',
+        kwPlaceholder: 'Keyword (e.g. favorite sushi topping)',
+        resPlaceholder: 'Aqua Akula\'s reply (e.g. Fatty tuna! I will swallow it whole!)',
+        learn: 'Teach the shark ⚡',
+        open: '▼ Open',
+        close: '▲ Close',
+        alertEmpty: 'Please enter both a keyword and a reply!',
+        trained: kw => `Burned keyword [${kw}] into my memory! Come at me again!`
+      },
+      ko: {
+        title: '아쿠아 아쿨라',
+        status: '심해 소나 가동 중 (API 미사용)',
+        welcomeTag: 'AQUA_AKULA_CORE: 기동 완료',
+        welcome: '여어, 사냥감… 아니, 파트너! 나는 심해의 제왕 <strong>「아쿠아 아쿨라」</strong>다! 🦈<br>' +
+          '외부 API 따위에 기대지 않고, 완전 로컬＆고속 자율 추론으로 네 질문을 사냥해 준다.<br><br>' +
+          'AI 개발, 심해, 잡담… 뭐든 물고 늘어져 봐!',
+        placeholder: '아쿠아 아쿨라에게 말 걸기... (Enter로 전송)',
+        send: '물어뜯기',
+        dict: '사전',
+        dictHint: '사전만 검색 (다음에 입력하는 말)',
+        themeToDark: '다크 모드로 전환',
+        themeToLight: '라이트 모드로 전환',
+        modeFast: '고속 모드',
+        modePro: 'Pro 모드',
+        modeHint: '응답 모드 전환 (고속 / Pro 분석)',
+        settings: '설정',
+        settingsLang: '언어 설정',
+        settingsCharset: '문자 인코딩 설정',
+        settingsCharsetHint: '로그 저장에 사용할 인코딩 선택',
+        saveLog: '로그 저장',
+        swimSection: '상어 유영 애니메이션',
+        swimToggle: '배경에서 자유롭게 수영',
+        swimHint: '화면의 빈 공간을 클릭하면 크리스탈 먹이를 줄 수 있습니다!',
+        trainerTitle: '아쿠아 아쿨라 조교 (새 단어 가르치기)',
+        trainerHelp: '새로운 키워드와 답변을 직접 가르칠 수 있습니다 (브라우저 LocalStorage에 저장되어 즉시 학습).',
+        kwPlaceholder: '키워드 (예: 좋아하는 초밥 재료)',
+        resPlaceholder: '아쿠아 아쿨라의 답변 (예: 오도로다! 한입에 통째로 삼켜주마!)',
+        learn: '상어에게 학습시키기 ⚡',
+        open: '▼ 열기',
+        close: '▲ 닫기',
+        alertEmpty: '키워드와 답변을 모두 입력해 주세요!',
+        trained: kw => `키워드【${kw}】를 메모리에 새겼다! 이제 다시 말 걸어봐!`
+      },
+      zh: {
+        title: 'AQUA AKULA',
+        status: '深海声纳运行中（不采用 API）',
+        welcomeTag: 'AQUA_AKULA_CORE: 启动完成',
+        welcome: '哟，猎物……不对，是搭档！我是深海之王<strong>「AQUA AKULA」</strong>！🦈<br>' +
+          '才不靠什么外部 API，纯本地、高速自主推理，替你猎杀所有问题。<br><br>' +
+          'AI 开发、深海、闲聊，随便咬过来！',
+        placeholder: '和AQUA AKULA说点什么吧... (按 Enter 发送)',
+        send: '咬一口',
+        dict: '词典',
+        dictHint: '只查词典（下一次输入）',
+        themeToDark: '切换到深色模式',
+        themeToLight: '切换到浅色模式',
+        modeFast: '高速模式',
+        modePro: 'Pro 模式',
+        modeHint: '切换响应模式（高速 / Pro 分析）',
+        settings: '设置',
+        settingsLang: '语言设置',
+        settingsCharset: '字符编码设置',
+        settingsCharsetHint: '选择保存日志时使用的编码',
+        saveLog: '保存日志',
+        swimSection: '鲨鱼游弋动画',
+        swimToggle: '在背景中自由游弋',
+        swimHint: '点击屏幕空白处可以投喂水晶食物！',
+        trainerTitle: 'AQUA AKULA训练（教它新词）',
+        trainerHelp: '你可以自己教它新的关键词和回答（保存在浏览器的 LocalStorage 中，立即学会）。',
+        kwPlaceholder: '关键词（例：喜欢的寿司配料）',
+        resPlaceholder: 'AQUA AKULA的回答（例：大腹金枪鱼！一口吞掉！）',
+        learn: '让鲨鱼学习 ⚡',
+        open: '▼ 展开',
+        close: '▲ 收起',
+        alertEmpty: '请同时输入关键词和回答！',
+        trained: kw => `关键词【${kw}】已经刻进我的记忆！再来问我吧！`
+      }
+    };
+
+    const CHIPS = [
+      {
+        icon: '🦈',
+        label: { ja: '自己紹介', en: 'About me', ko: '자기소개', zh: '自我介绍' },
+        text: { ja: 'お前の自己紹介をして！', en: 'Introduce yourself!', ko: '자기소개 해줘!', zh: '介绍一下你自己！' }
+      },
+      {
+        icon: '💻',
+        label: { ja: 'AI開発の始め方', en: 'Getting started with AI', ko: 'AI 개발 시작', zh: 'AI 开发入门' },
+        text: { ja: 'AI開発の始め方を教えて！', en: 'How do I get started with AI development?', ko: 'AI 개발은 어떻게 시작해?', zh: '教我怎么开始 AI 开发！' }
+      },
+      {
+        icon: '🔮',
+        label: { ja: 'サメ占い（運勢）', en: 'Shark fortune', ko: '상어 점 (운세)', zh: '鲨鱼占卜（运势）' },
+        text: { ja: '今日の運勢を占って！', en: 'Tell my fortune for today!', ko: '오늘 운세 봐줘!', zh: '帮我算算今天的运势！' }
+      },
+      {
+        icon: '✊',
+        label: { ja: 'じゃんけん勝負', en: 'Rock-Paper-Scissors', ko: '가위바위보 대결', zh: '猜拳对决' },
+        text: { ja: 'じゃんけんしようぜ！', en: 'Let\'s play RPS!', ko: '가위바위보 하자!', zh: '来猜拳吧！' }
+      },
+      {
+        icon: '🌊',
+        label: { ja: 'サメトリビア', en: 'Shark trivia', ko: '상어 트리比아', zh: '鲨鱼冷知识' },
+        text: { ja: 'サメの秘密を教えて', en: 'Tell me a shark secret', ko: '상어의 비밀을 알려줘', zh: '告诉我鲨鱼的秘密' }
+      },
+      {
+        icon: '🔍',
+        label: { ja: '辞書検索', en: 'Dictionary', ko: '사전 검색', zh: '词典查询' },
+        text: { ja: '辞書検索', en: 'Dictionary search', ko: '사전 검색', zh: '词典查询' },
+        focusInput: true
+      },
+      {
+        icon: '🔢',
+        label: { ja: '計算ハント', en: 'Math hunt', ko: '계산 사냥', zh: '计算猎杀' },
+        text: { ja: '125 * 8 は？', en: 'What is 125 * 8?', ko: '125 * 8은?', zh: '125 × 8 等于几？' }
+      }
+    ];
+
+    /* ========================================================
+       Knowledge base & inference engine (JA / EN / KO / ZH)
+    ======================================================== */
+    const defaultKnowledge = [
+      {
+        keywords: {
+          ja: ['自己紹介', '名前', '誰', 'お前', 'おまえ'],
+          en: ['who are you', 'your name', 'introduce yourself', 'introduce', 'about you', 'who r u'],
+          ko: ['자기소개', '이름', '누구', '정체', '아쿠아 아쿨라 소개'],
+          zh: ['你是谁', '自我介绍', '介绍', '名字', 'AQUA AKULA是谁']
+        },
+        response: {
+          ja: 'オレは「アクア・アクーラ」！蒼き深海からやってきたサイバー・プレデターだ。クラウドのAPIに頼らず、このブラウザ内部のメモリだけで思考する。鋭い歯と高速な嗅覚で、オマエの疑問を一撃で解決するぜ！',
+          en: "I'm AQUA AKULA — a cyber predator risen from the azure deep. No cloud APIs, no external calls: I think using only the memory inside this browser. Sharp teeth and fast sonar — I take down your questions in one bite!",
+          ko: '나는 「아쿠아 아쿨라」! 푸른 심해에서 온 사이버 프레데터다. 클라우드 API 따위에 기대지 않고, 이 브라우저 안의 메모리만으로 사고한다. 날카로운 이빨과 초고속 후각으로 네 궁금증을 한 방에 해결해 주지!',
+          zh: '我是「AQUA AKULA」！来自蔚蓝深海的赛博掠食者。不依赖云端 API，只用这个浏览器内部的内存思考。锋利的牙齿和高速嗅觉，一口就能解决你的疑问！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['ai開発', '開発', '機械学習', 'ディープラーニング', '始め方', '勉強'],
+          en: ['ai', 'ai development', 'machine learning', 'deep learning', 'get started with ai', 'learn ai', 'study ai', 'how to start ai'],
+          ko: ['ai', 'ai 개발', '개발', '머신러닝', '딥러닝', '시작', '공부'],
+          zh: ['ai', 'ai开发', '开发', '机器学习', '深度学习', '入门', '学习', '怎么开始']
+        },
+        response: {
+          ja: 'AI開発をハントしたいのか？いい気概だ！\nまずは【Python】を仕留めろ。次にデータ処理の【Pandas】、機械学習の【scikit-learn】、そして深層学習の【PyTorch】だ。\n一番重要なのは「何を予測・分類したいか」という獲物（課題）を明確に定めることだぜ！',
+          en: "Hunting AI development, huh? Good instinct!\nFirst, take down Python. Then Pandas for data wrangling, scikit-learn for classic machine learning, and PyTorch for deep learning.\nMost important: pin down exactly what prey — what problem — you want to predict or classify!",
+          ko: 'AI 개발을 사냥하고 싶다고? 좋은 기개다!\n먼저 【Python】을 처치해라. 다음은 데이터 처리의 【Pandas】, 머신러닝의 【scikit-learn】, 그리고 딥러닝의 【PyTorch】다.\n가장 중요한 건 "무엇을 예측·분류하고 싶은가"라는 사냥감(과제)을 명확히 정하는 것이다!',
+          zh: '想猎杀 AI 开发？有气魄！\n先拿下【Python】。接着是数据处理的【Pandas】、机器学习的【scikit-learn】，还有深度学习的【PyTorch】。\n最重要的是明确你的猎物（课题）：到底想预测或分类什么！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['サメ', '秘密', 'トリビア', '雑学', '海', '深海'],
+          en: ['shark trivia', 'shark facts', 'about sharks', 'shark secret', 'trivia', 'deep sea', 'ocean'],
+          ko: ['상어', '비밀', '트리비아', '잡학', '바다', '심해'],
+          zh: ['鲨鱼', '秘密', '冷知识', '海洋', '深海', '海里', '海']
+        },
+        response: {
+          ja: 'フッ、サメのトリビアを聞きたいか？\n実はオレたちサメの歯は何列にも並んでいて、抜けても後ろから次々と新しい歯が生えてくるんだ。一生で数万本生え変わるぜ！常に切れ味抜群ってわけだ！',
+          en: "Heh, so you want shark trivia?\nA shark's teeth are stacked in rows, and when a front tooth falls out, the next one rolls forward. A single shark can go through tens of thousands of teeth in a lifetime. Always razor-sharp!",
+          ko: '흥, 상어 트리비아가 듣고 싶다고?\n사실 우리 상어의 이빨은 여러 줄로 늘어서 있어서, 빠져도 뒤에서 계속 새 이빨이 돋아난다. 평생 수만 개를 갈아 끼우지! 항상 날카롭다는 뜻이야!',
+          zh: '哼，想听鲨鱼冷知识？\n其实我们鲨鱼的牙齿是一排排叠着的，前面的掉了，后面的就会不断补上来。一生要换掉几万颗牙！所以我们永远锋利无比！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['好き', '食べ物', '餌', '獲物', '好物'],
+          en: ['favorite food', 'favourite food', 'what do you eat', 'food', 'hungry', 'eat', 'meal'],
+          ko: ['좋아하는 음식', '음식', '뭐 먹', '먹이', '사냥감', '배고'],
+          zh: ['喜欢的食物', '食物', '吃什么', '好吃', '饿', '饵料', '吃货']
+        },
+        response: {
+          ja: '好物はもちろん、新鮮なデータと難解なアルゴリズムだ！…と言いたいところだが、肉厚なマグロやアザラシも大好物だぜ。オマエを喰ったりはしねぇから安心しな！',
+          en: 'My favorite prey? Fresh data and hard algorithms! ...Though a thick cut of tuna or a seal goes down nicely too. Don\'t worry, partner — I won\'t bite you.',
+          ko: '좋아하는 건 당연히 신선한 데이터와 난해한 알고리즘이다! …라고 말하고 싶지만, 두툼한 참치나 물개도 아주 좋아하지. 널 먹지는 않을 테니 안심해라!',
+          zh: '我的猎物当然是新鲜的数据和难懂的算法！……虽然这么说，厚实的金枪鱼和海豹也是我的最爱。放心吧，我不会吃你的！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['運勢', '占い', 'おみくじ'],
+          en: ['fortune', 'horoscope', 'luck', 'lucky', 'fortune telling'],
+          ko: ['운세', '사주', '점치', '점을 봐', '오늘의 운세'],
+          zh: ['运势', '占卜', '算命', '今日运势', '运气']
+        },
+        type: 'fortune'
+      },
+      {
+        keywords: {
+          ja: ['api', '外部', '仕組み', 'ローカル'],
+          en: ['api', 'local', 'offline', 'how do you work', 'how does it work', 'privacy', 'external server'],
+          ko: ['api', '외부', '원리', '로컬', '오프라인'],
+          zh: ['api', '外部', '原理', '本地', '离线', '外部服务器']
+        },
+        response: {
+          ja: 'このオレは外部サーバー（OpenAIやGoogle）に一切パケットを飛ばさねぇ！純粋なJavaScriptの正規表現と単語重み付けソナーでオマエの意図を嗅ぎ分ける。プライバシーも完全保護の鉄壁ボディだ！',
+          en: "I don't fire a single packet at external servers — not OpenAI, not Google, nothing. Pure JavaScript regex and keyword-weighted sonar sniff out your intent. Privacy is part of my ironclad hull!",
+          ko: '나는 외부 서버(OpenAI나 Google)에 패킷을 단 하나도 날리지 않는다! 순수한 JavaScript 정규식과 단어 가중치 소나로 네 의도를 냄새 맡아 구분한다. 프라이버시도 완벽 보호되는 철벽 몸체다!',
+          zh: '我不会向外部服务器（OpenAI 或 Google）发送哪怕一个数据包！纯靠 JavaScript 正则和关键词加权声纳嗅出你的意图。隐私完全保护，铁壁之躯！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['疲れた', 'しんどい', 'ねむい', '休みたい'],
+          en: ['tired', 'sleepy', 'exhausted', 'stressed', 'rest', 'sleep'],
+          ko: ['피곤', '졸려', '지쳤', '쉬고', '스트레스', '힘들'],
+          zh: ['累了', '好累', '很累', '困', '疲惫', '休息', '压力']
+        },
+        response: {
+          ja: '無理すんな相棒！サメだってたまには海流に乗って休むんだ。美味いもん食って、深海のように静かな部屋で爆睡しな。明日また一緒に泳ぎ出せばいい！',
+          en: "Don't push yourself, partner! Even sharks drift with the current to rest. Grab something good to eat, sleep in a room as silent as the deep, and we'll swim out again tomorrow.",
+          ko: '무리하지 마라, 파트너! 상어도 가끔은 해류를 타고 쉬어. 맛있는 걸 먹고, 심해처럼 조용한 방에서 푹 자라. 내일 또 함께 헤엄치면 되잖아!',
+          zh: '别硬撑，搭档！鲨鱼有时也会顺着洋流休息。好好吃点东西，在像深海一样安静的房间里睡个够。明天我们再一起游出去！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['ありがとう', '感謝', '助かった', 'サンキュー'],
+          en: ['thanks', 'thank you', 'thx', 'appreciate', 'arigato'],
+          ko: ['고마워', '감사', '고맙', '땡큐', '수고'],
+          zh: ['谢谢', '感谢', '多谢', '辛苦了', '谢了']
+        },
+        response: {
+          ja: '礼には及ばねぇ！オマエの役に立てたなら本望だぜ。またいつでも牙を借りに来な！',
+          en: "No thanks needed! If I was useful, that's reward enough. Come borrow my teeth anytime!",
+          ko: '고맙긴 뭘! 네게 도움이 됐다면 그걸로 만족이다. 언제든 이빨 빌리러 와라!',
+          zh: '谢什么谢！能帮上你就够了。什么时候想借我的牙，随时来！'
+        }
+      },
+      {
+        keywords: {
+          ja: ['こんにちは', 'こんばんは', 'おはよう', 'やあ', '元気', '調子'],
+          en: ['hello', 'hi', 'hey', 'yo', 'good morning', 'good evening', 'how are you', "what's up", 'whats up', 'sup'],
+          ko: ['안녕', '하이', '반가', '좋은 아침', '좋은 저녁', '뭐 해'],
+          zh: ['你好', '哈喽', '嗨', '早上好', '晚上好', '在吗', '最近怎么样']
+        },
+        response: {
+          ja: 'よっ、相棒！アクア・アクーラ、ソナー全開で待機中だ。今日は何を狩る？',
+          en: 'Yo, partner! AQUA AKULA on station, sonar wide open. What are we hunting today?',
+          ko: '여어, 파트너! 아쿠아 아쿨라, 소나 전개 완료. 오늘은 뭘 사냥할까?',
+          zh: '哟，搭档！AQUA AKULA声纳全开待命中。今天猎什么？'
+        }
+      },
+      {
+        keywords: {
+          ja: ['辞書検索', '辞書で調べ', '意味を調べ', '言葉を調べ'],
+          en: ['dictionary search', 'look up a word', 'dictionary', 'lookup'],
+          ko: ['사전 검색', '단어 검색', '사전에서', '낱말'],
+          zh: ['词典查询', '查词典', '查单词', '字典查询']
+        },
+        response: {
+          ja: '🔍 辞書検索モード起動！\n次に入力した言葉を、会話抜きで辞書から直接検索するぜ。例：「辞書」「apple」「苹果」「사과」\n約2,000語の深海辞書（日・英・中・韓対応）に噛みついてみな！',
+          en: "🔍 Dictionary mode engaged!\nThe next word you type goes straight to the dictionary — no small talk. Try 辞書, apple, 苹果, 사과.\nAbout 2,000 entries in Japanese, English, Chinese and Korean. Take a bite!",
+          ko: '🔍 사전 검색 모드 기동!\n다음에 입력한 단어를 대화 없이 바로 사전에서 찾아준다. 예: 「辞書」「apple」「苹果」「사과」\n약 2,000개의 심해 사전(일본어·영어·중국어·한국어)에 도전해 봐!',
+          zh: '🔍 词典查询模式启动！\n接下来输入的词会跳过闲聊，直接在词典中查找。例如「辞書」「apple」「苹果」「사과」。\n约 2,000 条深海词典（日、英、中、韩），尽管来查！'
+        }
+      }
+    ];
+
+    /* 日本語辞書プリインストール */
+    const JAPANESE_DICT = [
+      ['挨拶', 'あいさつ', '名詞・サ変', '日常', '人と会った時や別れる時に交わす礼儀的な言葉や動作。', '朝の挨拶を欠かさない。', '礼儀, 声かけ'],
+      ['阿吽の呼吸', 'あうんのこきゅう', '慣用句', '日常', '二人以上の人が一緒に物事をする時の微妙な気持ちの一致。', '長年の相棒と阿吽の呼吸で仕事をこなす。', '息が合う, 意気投合'],
+      ['居心地', 'いごこち', '名詞', '日常', 'その場所にいる時の気分の良さや快適さ。', 'このカフェはとても居心地が良い。', '快適さ, 住み心地'],
+      ['一日千秋', 'いちじつせんしゅう', '四字熟語', '教養', '一日が千年にも感じられるほど、待ち遠しく思うこと。', '合格発表の日を一日千秋の思いで待つ。', '待ち遠しい, 鶴首'],
+      ['一生懸命', 'いっしょうけんめい', '名詞・形容動詞', '日常', '命がけで物事に取り組むこと。転じて、全力を尽くすこと。', '試験に向けて一生懸命勉強する。', '全力, 必死'],
+      ['意味深長', 'いみしんちょう', '四字熟語', 'ビジネス', '言葉や表現の奥に深い意味が込められていること。', '部長は意味深長な笑みを浮かべた。', '含蓄, 奥深い'],
+      ['有耶無耶', 'うやむや', '名詞・形容動詞', 'ビジネス', '物事の決着がつかず、はっきりしない状態。', '問題をうやむやにしてはいけない。', '曖昧, 不明瞭'],
+      ['円満', 'えんまん', '名詞・形容動詞', 'ビジネス', '欠けたところがなく穏やかで、争いごとがない様子。', '話し合いの結果、円満に解決した。', '穏便, 和やか'],
+      ['温故知新', 'おんこちしん', '四字熟語', '教養', '昔の事柄を研究し、そこから新しい知識や道理を見出すこと。', '温故知新の精神で新しい企画を練る。', '故きを温ねて新しきを知る'],
+      ['改善', 'かいぜん', '名詞・サ変', 'ビジネス', '悪いところを改めて良くすること。', '業務フローの改善に取り組む。', '改良, 是正'],
+      ['革新', 'かくしん', '名詞・サ変', 'ビジネス', '従来の制度や習慣、方法などを改めて新しくすること。', '技術革新によって生活が便利になった。', 'イノベーション, 刷新'],
+      ['花鳥風月', 'かちょうふうげつ', '四字熟語', '美しい日本語', '自然の美しい風景や、それを題材にした風流な趣。', '花鳥風月を愛でる心の余裕を持つ。', '自然美, 風流'],
+      ['歓迎', 'かんげい', '名詞・サ変', '日常', '人の来訪を喜んで迎えること。新しい事柄を喜んで受け入れること。', '新しいメンバーを温かく歓迎する。', '歓待, 迎え入れ'],
+      ['気配り', 'きくばり', '名詞・サ変', 'ビジネス', 'あれこれと気を遣うこと。周囲への細やかな配慮。', '彼女の気配りのおかげで場が和んだ。', '配慮, 心遣い'],
+      ['絆', 'きずな', '名詞', '日常', '人と人との断ち切ることのできない強い結びつき。', '困難を乗り越えてチームの絆が深まった。', '結びつき, 連帯'],
+      ['几帳面', 'きちょうめん', '形容動詞', '日常', '物事を細部まできちんと行い、手抜きをしない性質。', '彼は几帳面な性格で資料整理が得意だ。', '丁寧, 律儀'],
+      ['共感', 'きょうかん', '名詞・サ変', '日常', '他人の意見や感情に対して、その通りだと感じること。', 'プレゼンの内容に多くの聴衆が共感した。', '同感, 賛同'],
+      ['緊張', 'きんちょう', '名詞・サ変', '日常', '心や体が引き締まること。不安や興奮で心が張り詰めること。', '大勢の前でのスピーチに緊張する。', '緊迫, ドキドキ'],
+      ['工夫', 'くふう', '名詞・サ変', 'ビジネス', '良い方法や手段をあれこれと考え出すこと。', '作業時間を短縮するために工夫を凝らす。', '創意, 考案'],
+      ['継続', 'けいぞく', '名詞・サ変', 'ビジネス', '前から行っていることをそのまま続けること。', '毎日の小さな努力を継続することが大切だ。', '持続, 続行'],
+      ['謙虚', 'けんきょ', '名詞・形容動詞', 'ビジネス', '控え目でつつましいこと。素直に人の意見を受け入れる様子。', '成功しても謙虚な姿勢を忘れない。', '控え目, 素直'],
+      ['木漏れ日', 'こもれび', '名詞', '美しい日本語', '森林などの木々の葉の間から差し込む太陽の光。', '木漏れ日の中を散歩するのは気持ちが良い。', '陽光, 木陰の光'],
+      ['根気', 'こんき', '名詞', '日常', '一つの物事を飽きずに長く続ける気力。', '語学の習得には根気が必要だ。', '忍耐, 粘り強さ'],
+      ['先駆け', 'さきがけ', '名詞', 'ビジネス', '他の人より先に物事を始めること。また、その人。', '業界の先駆けとして新サービスを導入する。', '先駆, パイオニア'],
+      ['匙を投げる', 'さじをなげる', '慣用句', '日常', 'どうにも対処のしようがなくなり、諦めること。', 'あまりの頑固さに周囲も匙を投げた。', '諦める, 断念する'],
+      ['試行錯誤', 'しこうさくご', '四字熟語', 'ビジネス', '新しい物事を行う際、試みと失敗を繰り返しながら解決策を探ること。', '試行錯誤の末に理想の製品が完成した。', 'トライアンドエラー'],
+      ['自然体', 'しぜんたい', '名詞', '日常', '無理や飾り気がなく、ありのままでいる様子。', '肩の力を抜いて自然体で面接に臨む。', 'ありのまま, 等身大'],
+      ['しっぽり', 'しっぽり', '副詞', '美しい日本語', '落ち着いて風情がある様子。雨などが静かに降る様子。', '雨の夜にしっぽりと読書を楽しむ。', '静かに, しっとり'],
+      ['情熱', 'じょうねつ', '名詞', '日常', 'ある物事に向かって激しく燃え立つ気持ち。', '仕事に対する情熱を失わない。', '熱意, パッション'],
+      ['信頼', 'しんらい', '名詞・サ変', 'ビジネス', '相手を信じて頼りにすること。', '誠実な対応で顧客からの信頼を得る。', '信用, 確信'],
+      ['誠意', 'せいい', '名詞', 'ビジネス', '偽りや飾りのない真心。真剣で正直な気持ち。', 'ミスに対して誠意を持って謝罪する。', '真心, 誠実さ'],
+      ['贅沢', 'せいたく', '名詞・形容動詞', '日常', '必要な程度を超えて、金銭や物を豊かに使うこと。', 'たまには贅沢をして美味しい料理を食べる。', '豪華, 華美'],
+      ['切磋琢磨', 'せっさたくま', '四字熟語', '教養', '仲間同士で互いに励まし合い、競い合って向上すること。', '良きライバルと切磋琢磨して成長する。', '研鑽, 競い合い'],
+      ['想像力', 'そうぞうりょく', '名詞', 'ビジネス', '現実にはない事柄や相手の立場を頭の中で思い描く力。', '相手の気持ちを汲み取る想像力を働かせる。', '発想力, イマジネーション'],
+      ['率先', 'そっせん', '名詞・サ変', 'ビジネス', '人の先頭に立って物事を行うこと。', 'リーダーとして率先して行動する。', '先導, リード'],
+      ['対応', 'たいおう', '名詞・サ変', 'ビジネス', '相手の言動や状況に合わせて適切に処理すること。', '問い合わせに迅速に対応する。', '対処, 応対'],
+      ['黄昏', 'たそがれ', '名詞', '美しい日本語', '日が落ちて薄暗くなる夕方の時間帯。夕暮れ。', '黄昏時の空が美しいオレンジ色に染まる。', '夕暮れ, 逢魔が時'],
+      ['緻密', 'ちみつ', '形容動詞', 'ビジネス', '非常に細かく丁寧で、少しの隙もない様子。', '緻密な計画を立ててプロジェクトを進める。', '精密, 精巧'],
+      ['挑戦', 'ちょうせん', '名詞・サ変', '日常', '困難な事柄や新しい記録などに立ち向かうこと。', '未経験の分野に果敢に挑戦する。', 'チャレンジ, 挑む'],
+      ['丁寧', 'ていねい', '形容動詞', '日常', '細かいところまで気を配り、念入りである様子。礼儀正しい様子。', '初心者にも分かりやすく丁寧に説明する。', '懇切, 念入り'],
+      ['転機', 'てんき', '名詞', '日常', '物事の状態や方向が大きく変わるきっかけとなる時。', '留学が人生の大きな転機となった。', '節目, ターニングポイント'],
+      ['努力', 'どりょく', '名詞・サ変', '日常', '目標の実現のために力を尽くして励むこと。', '日々の努力が実を結ぶ。', '精進, 奮闘'],
+      ['和やか', 'なごやか', '形容動詞', '日常', '心が落ち着いて穏やかな様子。打ち解けて楽しい様子。', '和やかな雰囲気の中で会議が進んだ。', '穏やか, 温厚'],
+      ['温もり', 'ぬくもり', '名詞', '美しい日本語', 'ほどよい暖かさ。人の優しさや愛情が感じられること。', '手書きの手紙には独特の温もりがある。', '暖かみ, 優しさ'],
+      ['粘り強い', 'ねばりづよい', '形容詞', '日常', '困難に負けないで、最後まで諦めずにやり通す性質。', '粘り強い交渉の末に合意に至った。', '辛抱強い, 根気強い'],
+      ['配慮', 'はいりょ', '名詞・サ変', 'ビジネス', '他の人のために心を配ること。気遣い。', '周囲への配慮を忘れずに行動する。', '気配り, 心遣い'],
+      ['風情', 'ふぜい', '名詞', '美しい日本語', 'しみじみとした趣や味わい。情緒。', '古都の街並みには独特の風情がある。', '趣, 情緒'],
+      ['平穏', 'へいおん', '名詞・形容動詞', '日常', '変わりがなく穏やかで静かな様子。', '平穏な日常に感謝する。', '平和, 安穏'],
+      ['魅力', 'みりょく', '名詞', '日常', '人の心を引きつけて夢中にさせる力。', 'その街には歴史と現代が融合した魅力がある。', '惹きつける力, 訴求力'],
+      ['友情', 'ゆうじょう', '名詞', '日常', '友達同士の間に通い合う温かい気持ち。', '学生時代の友情は一生の宝物だ。', '友愛, 親交']
+    ];
+
+    function makeDictItem([term, kana, pos, cat, mean, ex, rel]) {
+      const related = (rel || '').split(',').map(s => s.trim()).filter(Boolean);
+      const keywords = [term, kana, ...related].filter((v, i, a) => a.indexOf(v) === i);
+      const title = !kana || term === kana ? term : `${term}（${kana}）`;
+      const lines = [`🦈 ソナー捕捉！【${title}】`, cat ? `${pos}／${cat}` : pos, mean];
+      if (ex) lines.push(`例文：「${ex}」`);
+      if (rel) lines.push(`関連語：${rel}`);
+      return {
+        keywords: { ja: keywords, en: [], ko: [], zh: [] },
+        exact: [term, kana].filter(Boolean),
+        tag: 'DICTIONARY_CATCH',
+        dict: true,
+        response: { ja: lines.join('\n') }
+      };
+    }
+
+    const POS_TEXT = {
+      N: { ja: '名詞', en: 'Noun', ko: '명사', zh: '名词' },
+      V: { ja: '動詞', en: 'Verb', ko: '동사', zh: '动词' },
+      A: { ja: '形容詞', en: 'Adjective', ko: '형용사', zh: '形容词' },
+      NA: { ja: '形容動詞', en: 'Na-adjective', ko: '형용사', zh: '形容动词' },
+      AD: { ja: '副詞', en: 'Adverb', ko: '부사', zh: '副词' },
+      C: { ja: '接続詞', en: 'Conjunction', ko: '접속사', zh: '连词' },
+      I: { ja: '感動詞', en: 'Interjection', ko: '감탄사', zh: '感叹词' },
+      X: { ja: '慣用句', en: 'Idiom', ko: '관용구', zh: '惯用语' }
+    };
+
+    function makeMultiDictItem([term, kana, pos, en, zh, ko, mean]) {
+      const [enHead, enDef] = en.split('|').map(s => s.trim());
+      const [zhHead, zhDef] = zh.split('|').map(s => s.trim());
+      const [koHead, koDef] = ko.split('|').map(s => s.trim());
+      const title = !kana || term === kana ? term : `${term}（${kana}）`;
+      const heads = { ja: title, en: enHead, zh: zhHead, ko: koHead };
+      const defs = { ja: mean, en: enDef, zh: zhDef, ko: koDef };
+      const banner = {
+        ja: `🦈 ソナー捕捉！【${title}】`,
+        en: `🦈 SONAR CONTACT!【${enHead}】`,
+        ko: `🦈 소나 접촉!【${koHead}】`,
+        zh: `🦈 声纳捕捉！【${zhHead}】`
+      };
+      const response = {};
+      for (const lang of LANGS) {
+        const order = [lang, ...LANGS.filter(l => l !== lang)];
+        const lines = [banner[lang], POS_TEXT[pos][lang]];
+        for (const l of order) {
+          const def = defs[l] || '';
+          lines.push(`${l.toUpperCase()}: ${heads[l]}${def ? ` — ${def}` : ''}`);
+        }
+        response[lang] = lines.join('\n');
+      }
+      return {
+        keywords: { ja: [term, kana].filter(Boolean), en: [enHead], ko: [koHead], zh: [zhHead] },
+        exact: [term, kana, enHead, zhHead, koHead].filter(Boolean),
+        tag: 'DICTIONARY_CATCH',
+        dict: true,
+        response
+      };
+    }
+
+    const CORE_KNOWLEDGE = defaultKnowledge.filter(item => !item.dict);
+    const DICT_KNOWLEDGE = [
+      ...defaultKnowledge.filter(item => item.dict),
+      ...JAPANESE_DICT.map(makeDictItem)
+    ];
+
+    const FORTUNES = {
+      ja: [
+        '【超大吉（メガロドン級）】🦈🔥\n今日のオマエは無敵だ！狙った獲物は絶対に逃さねぇ。新しいプロジェクトや挑戦に噛みつく絶好のチャンスだ！',
+        '【大吉（ホホジロザメ級）】🦈✨\n鋭い直感が冴え渡る日！迷ったら攻めの姿勢で突き進め！',
+        '【中吉（シュモクザメ級）】👀🌊\n視野を広く持つと幸運をキャッチできるぜ。周りをよく観察してみな！',
+        '【小吉（ネムリブカ級）】💤\n今日は省エネモードで吉。焦らず体力を温存して、次の獲物をじっくり待つべし！'
+      ],
+      en: [
+        '【Mega Lucky (Megalodon class)】🦈🔥\nYou are unstoppable today! No prey escapes you. The perfect moment to bite into a new project or challenge!',
+        '【Great Luck (Great White class)】🦈✨\nYour instincts are razor-sharp today. When in doubt, attack!',
+        '【Good Luck (Hammerhead class)】👀🌊\nKeep your field of view wide and luck will swim right into it. Observe your surroundings!',
+        '【Small Luck (Nurse Shark class)】💤\nToday is a low-power day — and a lucky one. Save your energy and wait for the next prey!'
+      ],
+      ko: [
+        '【초대길 (메갈로돈급)】🦈🔥\n오늘의 넌 무적이다! 노린 사냥감은 절대 놓치지 않아. 새로운 프로젝트나 도전에 덤벼들 절호의 기회다!',
+        '【대길 (백상아리급)】🦈✨\n날카로운 직감이 빛나는 날! 망설여지면 공격적으로 밀고 나가!',
+        '【중길 (귀상어급)】👀🌊\n시야를 넓게 가지면 행운을 잡을 수 있다. 주변을 잘 관찰해 봐!',
+        '【소길 (수염상어급)】💤\n오늘은 에너지 절약 모드가 길. 서두르지 말고 체력을 아끼며 다음 사냥감을 기다려!'
+      ],
+      zh: [
+        '【超大吉（巨齿鲨级）】🦈🔥\n今天的你无人能敌！盯上的猎物绝不放过。是咬住新项目、新挑战的绝佳机会！',
+        '【大吉（大白鲨级）】🦈✨\n直觉锐利的一天！犹豫的时候就主动出击！',
+        '【中吉（锤头鲨级）】👀🌊\n视野放得越宽，越能接住好运。好好观察周围吧！',
+        '【小吉（护士鲨级）】💤\n今天是省电模式的好日子。别着急，保存体力，静候下一个猎物！'
+      ]
+    };
+
+    const FALLBACKS = {
+      ja: [
+        'ふむ…その話題はオレの深海ソナーにまだ引っかかってねぇな！\n下の「調教」パネルからオレにその言葉を教えてくれれば、一撃で記憶してやるぜ！',
+        '鋭い角度の質問だな！だがオレの知識ライブラリにはまだ登録がねぇ。\n「AI開発」や「サメのトリビア」について聞くか、オレに新しい知識を教えてくれ！',
+        'ガウッ！ちょっと難解な波長だな。もう少し簡単な言葉で獲物を指定してくれるか？'
+      ],
+      en: [
+        "Hmm... that scent isn't hitting my deep-sea sonar yet!\nOpen the training panel below and teach me the word — I'll memorize it in one bite!",
+        "That's a sharp-angled question! It's not in my knowledge library yet.\nAsk me about AI development or shark trivia, or teach me something new!",
+        "Gawr! That's a tricky wavelength. Point me at your prey using simpler words?"
+      ],
+      ko: [
+        '흠… 그 화제는 아직 내 심해 소나에 걸리지 않았어!\n아래 「조교」 패널에서 그 단어를 가르쳐 주면 한 방에 기억해 줄게!',
+        '날카로운 질문이군! 하지만 내 지식 라이브러리에는 아직 등록되지 않았어.\n「AI 개발」이나 「상어 트리비아」를 물어보거나, 내게 새로운 지식을 가르쳐 줘!',
+        '가우! 조금 난해한 파장이군. 좀 더 간단한 말로 사냥감을 지정해 줄래?'
+      ],
+      zh: [
+        '唔…这个话题还没被我的深海声纳捕捉到！\n在下方的「训练」面板教我这个词，我一口就能记住！',
+        '好刁钻的问题！不过我的知识库里还没有登记。\n问问我「AI 开发」或「鲨鱼冷知识」，或者教我新知识吧！',
+        '嗷！这波长有点难解。能用更简单的话告诉我目标猎物吗？'
+      ]
+    };
+
+    const MATH_TEXT = {
+      ja: {
+        zero: '0で割るんじゃねぇ！深海ブラックホールに吸い込まれるぞ！',
+        done: (a, op, b, r) => `計算ハント完了！\n${a} ${op} ${b} の答えは【 ${r} 】だ！オレの嗅覚に狂いなし！`
+      },
+      en: {
+        zero: "Don't divide by zero! You'll drag us both into a deep-sea black hole!",
+        done: (a, op, b, r) => `Math hunt complete!\n${a} ${op} ${b} = 【 ${r} 】. My sonar is never wrong!`
+      },
+      ko: {
+        zero: '0으로 나누면 안 돼! 심해 블랙홀에 빨려 들어간다고!',
+        done: (a, op, b, r) => `계산 사냥 완료!\n${a} ${op} ${b} 의 답은【 ${r} 】다! 내 후각은 틀리지 않아!`
+      },
+      zh: {
+        zero: '不许除以零！会被吸进深海黑洞的！',
+        done: (a, op, b, r) => `计算猎杀完成！\n${a} ${op} ${b} 的答案是【 ${r} 】！我的嗅觉从不出错！`
+      }
+    };
+
+    const HANDS = [
+      { id: 'rock', ja: 'グー', en: 'Rock', ko: '바위', zh: '石头' },
+      { id: 'scissors', ja: 'チョキ', en: 'Scissors', ko: '가위', zh: '剪刀' },
+      { id: 'paper', ja: 'パー', en: 'Paper', ko: '보', zh: '布' }
+    ];
+
+    const JPS_TEXT = {
+      ja: {
+        prompt: 'じゃんけん勝負だな！「グー」「チョキ」「パー」のどれかを一緒に出しな！\nいくぜ…最初はサメ！じゃん・けん…？',
+        tie: 'あいこだ！気が合うじゃねぇか！もう一回勝負だ！',
+        win: 'チッ…オマエの勝ちだ！いい牙持ってるじゃねぇか！見事だ！',
+        lose: 'ガハハ！オレの勝ちだ！深海の牙に敵うと思ったか！',
+        you: 'オマエ',
+        shark: 'アクア・アクーラ'
+      },
+      en: {
+        prompt: 'Rock, paper, scissors, huh? Pick a hand — rock, paper, or scissors!\nHere we go... first up is SHARK! Rock... paper... scissors...?',
+        tie: "It's a tie! We think alike. Run it back!",
+        win: 'Tch... you got me! Nice teeth, partner. Well played!',
+        lose: 'Hahaha! I win! Did you really think you could out-bite a deep-sea jaw?',
+        you: 'You',
+        shark: 'AQUA AKULA'
+      },
+      ko: {
+        prompt: '가위바위보 대결이군! 「가위」「바위」「보」 중 하나를 내봐!\n간다… 처음엔 상어! 가위・바위… 보?',
+        tie: '비겼다! 우리 통하는구나! 한 판 더 가자!',
+        win: '쳇… 네가 이겼다! 이빨 좋은데? 훌륭해!',
+        lose: '하하하! 내가 이겼다! 심해의 이빨을 이길 수 있을 줄 알았나!',
+        you: '너',
+        shark: '아쿠아 아쿨라'
+      },
+      zh: {
+        prompt: '猜拳对决是吧！「石头」「剪刀」「布」随便出一个！\n来吧…先出鲨鱼！石头・剪刀…布？',
+        tie: '平局！我们想到一块去了。再来一局！',
+        win: '啧…你赢了！牙口不错嘛！漂亮！',
+        lose: '哈哈哈！我赢了！你以为能敌得过深海的獠牙吗！',
+        you: '你',
+        shark: 'AQUA AKULA'
+      }
+    };
+
+    let uiLang = 'ja';
+    let dictSearchArmed = false;
+    let engineMode = 'fast';
+
+    function setDictArmed(on) {
+      dictSearchArmed = on;
+      const btn = document.getElementById('dictBtn');
+      if (!btn) return;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.closest('.input-bar').classList.toggle('dict-mode', on);
+    }
+
+    const DICT_SEARCH_TEXT = {
+      ja: q => `🦈 ソナーに反応なし…\n「${q}」は深海辞書に未収録だ。別の表記や短い単語で試すか、下の調教パネルで教えてくれ。`,
+      en: q => `🦈 No sonar contact...\n"${q}" is not in the deep-sea dictionary. Try another spelling or a shorter word, or teach it in the training panel below.`,
+      ko: q => `🦈 소나 반응 없음...\n"${q}"은(는) 심해 사전에 없습니다. 다른 표기나 짧은 단어로 시도하거나 아래 훈련 패널에서 가르쳐 주세요.`,
+      zh: q => `🦈 声纳没有反应……\n“${q}”未收录于深海词典。请换个写法或更短的词，也可以在下方训练面板教给我。`
+    };
+
+    const GREETING_TEXT = {
+      ja: {
+        morning: 'おはよう！🦈 朝の海は最高だぜ。今日も元気に狩りに出よう！\n何か話したいことがあったら、いつでも噛みついてこい！',
+        day: 'こんにちは！🦈 深海から浮上してきたぜ。\n今日は何を狩る？ AIのことでも雑談でも、何でも来い！',
+        evening: 'こんばんは！🦈 夜の海はオレの時間だ。\n今日はどんな一日だった？ ゆっくり話してくれ。',
+        night: 'おやすみ！🦈 ゆっくり休めよ。\n明日もソナー全開で待ってるぜ。',
+        general: 'やあ！元気だぜ、オマエのおかげでな。🦈\n今日は何を狩る？ 何でも噛みついてこい！'
+      },
+      en: {
+        morning: 'Good morning! 🦈 The morning sea is the best. Let us hunt something great today!\nGot something on your mind? Take a bite anytime.',
+        day: 'Hello! 🦈 I just surfaced from the deep.\nWhat are we hunting today? AI, the ocean, or plain small talk — bring it on!',
+        evening: 'Good evening! 🦈 The night sea is my time.\nHow was your day? Take your time and tell me.',
+        night: 'Good night! 🦈 Rest well.\nI will be waiting tomorrow with sonar wide open.',
+        general: 'Hey there! I am doing great, thanks for asking. 🦈\nWhat are we hunting today? Take a bite at anything!'
+      },
+      ko: {
+        morning: '좋은 아침! 🦈 아침 바다가 최고지. 오늘도 힘차게 사냥하자!\n하고 싶은 이야기가 있으면 언제든 물고 늘어져!',
+        day: '안녕! 🦈 심해에서 떠올라 왔어.\n오늘은 뭘 사냥할까? AI든 바다든 잡담이든 뭐든 좋아!',
+        evening: '좋은 저녁! 🦈 밤바다는 내 시간이야.\n오늘 하루 어땠어? 천천히 이야기해 줘.',
+        night: '잘 자! 🦈 푹 쉬어.\n내일도 소나 활짝 열고 기다릴게.',
+        general: '여어! 덕분에 잘 지내지. 🦈\n오늘은 뭘 사냥할까? 뭐든 물어봐!'
+      },
+      zh: {
+        morning: '早上好！🦈 早晨的海洋最棒了。今天也一起痛快捕猎吧！\n有什么想聊的，随时咬过来！',
+        day: '你好！🦈 我刚从深海浮上来。\n今天猎什么？AI、海洋还是闲聊，都放马过来！',
+        evening: '晚上好！🦈 夜晚的海洋是我的时间。\n今天过得怎么样？慢慢说给我听。',
+        night: '晚安！🦈 好好休息。\n明天我也会声纳全开等着你。',
+        general: '嗨！我很好，谢谢关心。🦈\n今天猎什么？尽管咬过来！'
+      }
+    };
+
+    const toHira = s => s.replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+    const stripEmoji = s => s.replace(/[\uD83C-\uD83E][\uDC00-\uDFFF]|[\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D\u20E3]/g, '');
+
+    function greetingReply(clean) {
+      const s = toHira(clean);
+      if (/おはよう|こんにちは|こんにちわ|こんばんは|おやすみ|やあ|はろー|元気|調子/.test(s)) {
+        const t = GREETING_TEXT.ja;
+        if (/おやすみ/.test(s)) return t.night;
+        if (/おはよう/.test(s)) return t.morning;
+        if (/こんばんは/.test(s)) return t.evening;
+        if (/こんにちは|こんにちわ|やあ|はろー/.test(s)) return t.day;
+        return t.general;
+      }
+      return null;
+    }
+
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    function getLearnedKnowledge() {
+      try {
+        const stored = localStorage.getItem('blackshark_custom_memory');
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLearnedKnowledge(list) {
+      try {
+        localStorage.setItem('blackshark_custom_memory', JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    const ZH_HINT_RE = /[你您们們这這说說吗嗎麼么什怎哪请谢谁对對应應该见觉覺电话时问题爱开关關长东车马鸟鱼龙龟龜丽极读讀听聽买卖賣钱錢贵现认识语运动气氣吃玩个张样樣头发發还过儿兒岁歲网软务员单單华种类乐樂边邊學會體來國]/;
+
+    function detectLang(text) {
+      if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+      if (/[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(text)) return 'ko';
+      if (ZH_HINT_RE.test(text) || /手机|手機/.test(text)) return 'zh';
+      if (/[\u4e00-\u9faf]/.test(text)) return uiLang === 'zh' ? 'zh' : 'ja';
+      if (/[a-z]/i.test(text)) return 'en';
+      return uiLang;
+    }
+
+    function matches(clean, keyword) {
+      const k = keyword.toLowerCase();
+      if (!k) return false;
+      if (/^[a-z0-9']{1,3}$/.test(k)) {
+        return new RegExp(`(^|[^a-z0-9])${k}($|[^a-z0-9])`).test(clean);
+      }
+      if ([...k].length === 1) return clean === k;
+      return clean.includes(k);
+    }
+
+    function checkMath(input, lang) {
+      const normalized = input
+        .replace(/what\s+is|what's|whats|how much is|calculate|calc/g, ' ')
+        .replace(/は？|は\?|っていくつ|教えて/g, ' ')
+        .replace(/等于几|等于多少|等于|是多少|是几/g, ' ')
+        .replace(/얼마야|얼마|계산해줘|계산/g, ' ')
+        .replace(/[=＝?？]/g, ' ')
+        .replace(/[은는]\s*$/, '')
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .trim();
+      const m = normalized.match(/^(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/);
+      if (!m) return null;
+
+      const a = parseFloat(m[1]);
+      const op = m[2];
+      const b = parseFloat(m[3]);
+
+      if (op === '/' && b === 0) return MATH_TEXT[lang].zero;
+
+      let res;
+      if (op === '+') res = a + b;
+      else if (op === '-') res = a - b;
+      else if (op === '*') res = a * b;
+      else res = a / b;
+      res = parseFloat(res.toFixed(10));
+
+      return MATH_TEXT[lang].done(a, op, b, res);
+    }
+
+    function isJPS(input) {
+      return /じゃんけん|グー|チョキ|パー/.test(input)
+        || /\b(rock|paper|scissors)\b|rps|janken/.test(input);
+    }
+
+    function findHand(input, lang) {
+      const text = input
+        .replace(/rock[\s-]*paper[\s-]*scissors/g, ' ')
+        .replace(/가위바위보/g, ' ')
+        .replace(/石头剪刀布/g, ' ');
+
+      for (const h of HANDS) {
+        if (lang === 'ja' && text.includes(h.ja)) return h;
+        if (lang === 'en' && new RegExp(`\\b${h.id}\\b`).test(text)) return h;
+        if (lang === 'ko' && new RegExp(`(^|[^가-힣])${h.ko}([^가-힣]|$)`).test(text)) return h;
+        if (lang === 'zh' && text.includes(h.zh)) return h;
+      }
+      return null;
+    }
+
+    function beats(a, b) {
+      return (a.id === 'rock' && b.id === 'scissors') ||
+             (a.id === 'scissors' && b.id === 'paper') ||
+             (a.id === 'paper' && b.id === 'rock');
+    }
+
+    function playJPS(input, lang) {
+      const t = JPS_TEXT[lang];
+      const userHand = findHand(input, lang);
+      const sharkHand = pick(HANDS);
+
+      if (!userHand) return t.prompt;
+
+      let result;
+      if (userHand.id === sharkHand.id) result = t.tie;
+      else if (beats(userHand, sharkHand)) result = t.win;
+      else result = t.lose;
+
+      return `${t.you}:【 ${userHand[lang]} 】 vs ${t.shark}:【 ${sharkHand[lang]} 】\n\n${result}`;
+    }
+
+    function getSharkFortune(lang) {
+      return pick(FORTUNES[lang]);
+    }
+
+    function searchDictionary(clean, rawText, lang, strict = false) {
+      const target = rawText.trim();
+      const targetLower = target.toLowerCase();
+
+      for (const item of DICT_KNOWLEDGE) {
+        for (const ex of (item.exact || [])) {
+          if (ex.toLowerCase() === targetLower || ex.toLowerCase() === clean) {
+            return {
+              text: item.response[lang] || item.response.ja,
+              tag: item.tag || 'DICTIONARY_CATCH'
+            };
+          }
+        }
+      }
+
+      for (const item of DICT_KNOWLEDGE) {
+        const kws = [
+          ...(item.keywords[lang] || []),
+          ...(item.keywords.ja || []),
+          ...(item.keywords.en || []),
+          ...(item.keywords.ko || []),
+          ...(item.keywords.zh || [])
+        ];
+        for (const kw of kws) {
+          if (strict ? clean.includes(kw.toLowerCase()) : matches(clean, kw)) {
+            return {
+              text: item.response[lang] || item.response.ja,
+              tag: item.tag || 'DICTIONARY_CATCH'
+            };
+          }
+        }
+      }
+      return null;
+    }
+
+    function sharkThink(inputText, forceDict = false) {
+      const clean = stripEmoji(inputText.trim().toLowerCase()).trim();
+      const lang = detectLang(clean);
+
+      if (forceDict) {
+        const dictHit = searchDictionary(clean, inputText, lang, true);
+        if (dictHit) return dictHit;
+        return {
+          text: (DICT_SEARCH_TEXT[lang] || DICT_SEARCH_TEXT.ja)(inputText.trim()),
+          tag: 'DICTIONARY_MISS'
+        };
+      }
+
+      const mathAns = checkMath(clean, lang);
+      if (mathAns) return { text: mathAns, tag: 'CALC_HUNT' };
+
+      if (isJPS(clean)) return { text: playJPS(clean, lang), tag: 'JPS_BATTLE' };
+
+      for (const item of getLearnedKnowledge()) {
+        if (matches(clean, item.keyword)) {
+          return { text: item.response, tag: 'USER_TRAINED_MEMORY' };
+        }
+      }
+
+      const greet = greetingReply(clean);
+      if (greet) return { text: greet, tag: 'GREETING_PING' };
+
+      for (const item of CORE_KNOWLEDGE) {
+        for (const kw of (item.keywords[lang] || [])) {
+          if (matches(clean, kw)) {
+            if (item.type === 'fortune') {
+              return { text: getSharkFortune(lang), tag: 'SHARK_RADAR_ORACLE' };
+            }
+            return { text: item.response[lang], tag: 'TARGET_LOCKED' };
+          }
+        }
+      }
+
+      const dictHit = searchDictionary(clean, inputText, lang, false);
+      if (dictHit) return dictHit;
+
+      return { text: pick(FALLBACKS[lang]), tag: 'SONAR_EXPLORING' };
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function sendUserMessage() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const useDict = dictSearchArmed;
+      if (useDict) setDictArmed(false);
+
+      if (typeof triggerSharkBoost === 'function') {
+        triggerSharkBoost();
+      }
+
+      appendMsg(text, 'user');
+      input.value = '';
+
+      setTimeout(() => {
+        const result = sharkThink(text, useDict);
+        appendMsg(result.text, 'bot', result.tag);
+      }, 350);
+    }
+
+    function quickSend(text) {
+      document.getElementById('userInput').value = text;
+      sendUserMessage();
+    }
+
+    function appendMsg(text, sender, tag = '') {
+      const chatBox = document.getElementById('chatBox');
+      const row = document.createElement('div');
+      row.className = `msg-row ${sender}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar';
+      if (sender === 'bot') {
+        avatar.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#0284c7">
+            <path d="M4 20C4 20 6 12 11 8C14 5.6 18 3 20 3C19 8 18 13 14 16C10 19 6 20 4 20Z"/>
+          </svg>
+        `;
+      } else {
+        avatar.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        `;
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+
+      if (tag) {
+        const tagSpan = document.createElement('span');
+        tagSpan.className = 'shark-radar-tag';
+        tagSpan.textContent = `▶ ${tag}`;
+        bubble.appendChild(tagSpan);
+      }
+
+      const content = document.createElement('div');
+      content.className = 'msg-content';
+      content.lang = detectLang(text);
+      content.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+      bubble.appendChild(content);
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+
+      chatBox.appendChild(row);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function renderChips() {
+      const bar = document.getElementById('quickBar');
+      bar.innerHTML = '';
+      for (const chip of CHIPS) {
+        const el = document.createElement('div');
+        el.className = 'quick-chip';
+        el.textContent = `${chip.icon} ${chip.label[uiLang]}`;
+        el.addEventListener('click', () => {
+          if (chip.focusInput) {
+            setDictArmed(true);
+            document.getElementById('userInput').focus();
+          }
+          quickSend(chip.text[uiLang]);
+        });
+        bar.appendChild(el);
+      }
+    }
+
+    function toggleTrainer() {
+      const body = document.getElementById('trainerBody');
+      body.classList.toggle('open');
+      document.getElementById('trainerToggleIcon').textContent =
+        body.classList.contains('open') ? UI[uiLang].close : UI[uiLang].open;
+    }
+
+    function teachShark() {
+      const kwInput = document.getElementById('trainKeyword');
+      const resInput = document.getElementById('trainResponse');
+      const kw = kwInput.value.trim();
+      const res = resInput.value.trim();
+
+      if (!kw || !res) {
+        alert(UI[uiLang].alertEmpty);
+        return;
+      }
+
+      const list = getLearnedKnowledge();
+      list.push({ keyword: kw, response: res });
+      saveLearnedKnowledge(list);
+
+      kwInput.value = '';
+      resInput.value = '';
+
+      appendMsg(UI[uiLang].trained(kw), 'bot', 'TRAINING_COMPLETE');
+    }
+
+    function applyTheme(theme) {
+      const dark = theme === 'dark';
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      const btn = document.getElementById('themeBtn');
+      if (!btn) return;
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.title = UI[uiLang][dark ? 'themeToLight' : 'themeToDark'];
+    }
+
+    function toggleTheme() {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try {
+        localStorage.setItem('blackshark_theme', next);
+      } catch (e) {}
+    }
+
+    function setLang(lang) {
+      uiLang = lang;
+      try {
+        localStorage.setItem('blackshark_lang', lang);
+      } catch (e) {}
+
+      const t = UI[lang];
+      document.documentElement.lang = lang;
+      document.querySelectorAll('.lang-switch').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      document.getElementById('appTitle').textContent = t.title;
+      document.getElementById('headerStatus').textContent = t.status;
+      document.getElementById('userInput').placeholder = t.placeholder;
+      document.getElementById('sendLabel').textContent = t.send;
+      document.getElementById('dictLabel').textContent = t.dict;
+      document.getElementById('dictBtn').title = t.dictHint;
+      document.getElementById('themeBtn').title =
+        t[document.documentElement.dataset.theme === 'dark' ? 'themeToLight' : 'themeToDark'];
+      
+      document.getElementById('trainerTitleText').textContent = t.trainerTitle;
+      document.getElementById('trainerHelp').textContent = t.trainerHelp;
+      document.getElementById('trainKeyword').placeholder = t.kwPlaceholder;
+      document.getElementById('trainResponse').placeholder = t.resPlaceholder;
+      document.getElementById('learnBtn').textContent = t.learn;
+
+      const open = document.getElementById('trainerBody').classList.contains('open');
+      document.getElementById('trainerToggleIcon').textContent = open ? t.close : t.open;
+
+      const swimSec = document.getElementById('swimSectionLabel');
+      if (swimSec && t.swimSection) swimSec.textContent = t.swimSection;
+      const swimTgl = document.getElementById('swimToggleText');
+      if (swimTgl && t.swimToggle) swimTgl.textContent = t.swimToggle;
+      const swimHnt = document.getElementById('swimHintText');
+      if (swimHnt && t.swimHint) swimHnt.textContent = t.swimHint;
+
+      document.getElementById('welcomeBubble').innerHTML =
+        `<span class="shark-radar-tag">▶ ${t.welcomeTag}</span>${t.welcome}`;
+
+      renderChips();
+    }
+
+    /* ========================================================
+       AQUA AKULA: 深海遊泳エンジン (Aqua Swim Engine)
+       - 完全オフライン Canvas 2D
+       - 多関節リンク構造で滑らかにしなるサメ（アクア・アクーラ）
+       - 尾ビレからの泡（バブル）エフェクト
+       - マウス追従、画面端の自動旋回
+       - クリックでのエサ（クリスタル）投下＆捕食
+       - 送信時のバーストダッシュ（噛みつきブースト）
+    ======================================================== */
+
+    let oceanCanvas = null;
+    let oceanCtx = null;
+    let swimEnabled = true;
+    let cyberShark = null;
+    let bubbles = [];
+    let foods = [];
+    let mousePos = { x: -9999, y: -9999, active: false };
+    let animFrameId = null;
+
+    class DeepSeaBubble {
+      constructor(x, y, radius, isBoost = false) {
+        this.x = x + (Math.random() - 0.5) * 8;
+        this.y = y + (Math.random() - 0.5) * 8;
+        this.radius = radius || (Math.random() * 3 + 1.5);
+        this.vy = -(Math.random() * 1.6 + (isBoost ? 2.5 : 0.8));
+        this.vx = (Math.random() - 0.5) * (isBoost ? 1.8 : 0.6);
+        this.alpha = isBoost ? 0.85 : (Math.random() * 0.4 + 0.3);
+        this.decay = Math.random() * 0.005 + 0.004;
+        this.wigglePhase = Math.random() * Math.PI * 2;
+        this.isBoost = isBoost;
+      }
+      update() {
+        this.y += this.vy;
+        this.x += this.vx + Math.sin(this.wigglePhase) * 0.4;
+        this.wigglePhase += 0.06;
+        this.alpha -= this.decay;
+        return this.alpha > 0 && this.y > -20;
+      }
+      draw(ctx, isDark) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = isDark
+          ? `rgba(34, 211, 238, ${this.alpha * 0.8})`
+          : `rgba(6, 182, 212, ${this.alpha * 0.6})`;
+        ctx.fill();
+        ctx.strokeStyle = isDark
+          ? `rgba(255, 255, 255, ${this.alpha})`
+          : `rgba(255, 255, 255, ${this.alpha * 0.9})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    class SharkFood {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 14;
+        this.alpha = 1;
+        this.rotation = 0;
+        this.eaten = false;
+        this.sparkles = [];
+      }
+      update() {
+        this.rotation += 0.04;
+        if (this.eaten) {
+          this.alpha -= 0.06;
+          for (const s of this.sparkles) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.alpha -= 0.04;
+          }
+          return this.alpha > 0;
+        }
+        return true;
+      }
+      eat() {
+        if (this.eaten) return;
+        this.eaten = true;
+        for (let i = 0; i < 12; i++) {
+          const ang = (Math.PI * 2 * i) / 12;
+          const spd = Math.random() * 3 + 1.5;
+          this.sparkles.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            alpha: 1
+          });
+        }
+      }
+      draw(ctx, isDark) {
+        ctx.save();
+        if (!this.eaten) {
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rotation);
+          // 光るクリスタル（菱形）
+          ctx.beginPath();
+          ctx.moveTo(0, -this.size);
+          ctx.lineTo(this.size * 0.7, 0);
+          ctx.lineTo(0, this.size);
+          ctx.lineTo(-this.size * 0.7, 0);
+          ctx.closePath();
+          ctx.fillStyle = isDark ? '#22d3ee' : '#0284c7';
+          ctx.shadowColor = '#22d3ee';
+          ctx.shadowBlur = 12;
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        } else {
+          for (const s of this.sparkles) {
+            if (s.alpha <= 0) continue;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(34, 211, 238, ${s.alpha})`;
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+    }
+
+    class AquaAkulaShark {
+      constructor(w, h) {
+        this.x = w * 0.3;
+        this.y = h * 0.4;
+        this.angle = 0.2;
+        this.targetAngle = 0.2;
+        this.baseSpeed = 2.0;
+        this.speed = this.baseSpeed;
+        this.boostTimer = 0;
+        this.width = 34;
+        this.wiggle = 0;
+        this.wiggleSpeed = 0.08;
+
+        // 多関節セグメント（関節の間隔）
+        this.numSegments = 7;
+        this.segDist = 17;
+        this.segments = [];
+        for (let i = 0; i < this.numSegments; i++) {
+          this.segments.push({
+            x: this.x - i * this.segDist,
+            y: this.y,
+            angle: this.angle
+          });
+        }
+
+        this.happyTimer = 0;
+      }
+
+      boost() {
+        this.boostTimer = 75; // 約1.2秒ブースト
+      }
+
+      update(w, h) {
+        // ブースト処理
+        if (this.boostTimer > 0) {
+          this.boostTimer--;
+          this.speed = 7.5;
+          this.wiggleSpeed = 0.24;
+          const tail = this.segments[this.segments.length - 1];
+          bubbles.push(new DeepSeaBubble(tail.x, tail.y, Math.random() * 4 + 2, true));
+        } else {
+          this.speed = this.baseSpeed;
+          this.wiggleSpeed = 0.08;
+          if (Math.random() < 0.25) {
+            const tail = this.segments[this.segments.length - 1];
+            bubbles.push(new DeepSeaBubble(tail.x, tail.y, Math.random() * 2.5 + 1.2, false));
+          }
+        }
+
+        // 喜ぶ回転（エサを食べた後）
+        if (this.happyTimer > 0) {
+          this.happyTimer--;
+          this.targetAngle += 0.12;
+        } else {
+          // 目的地（エサ > マウス > 自由遊泳）の決定
+          let target = null;
+
+          if (foods.length > 0) {
+            const f = foods.find(food => !food.eaten);
+            if (f) target = f;
+          }
+
+          if (!target && mousePos.active) {
+            target = mousePos;
+          }
+
+          if (target) {
+            const dx = target.x - this.x;
+            const dy = target.y - this.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (target instanceof SharkFood && dist < 32) {
+              target.eat();
+              this.happyTimer = 45;
+              this.boostTimer = 35;
+            } else if (dist > 50) {
+              this.targetAngle = Math.atan2(dy, dx);
+            }
+          } else {
+            if (Math.random() < 0.03) {
+              this.targetAngle += (Math.random() - 0.5) * 0.9;
+            }
+          }
+
+          // 画面端の回避
+          const margin = 80;
+          if (this.x < margin) this.targetAngle = 0;
+          else if (this.x > w - margin) this.targetAngle = Math.PI;
+          if (this.y < margin) this.targetAngle = Math.PI / 2;
+          else if (this.y > h - margin) this.targetAngle = -Math.PI / 2;
+        }
+
+        // 角度のスムーズな補間
+        let diff = this.targetAngle - this.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const turnRate = this.boostTimer > 0 ? 0.08 : 0.04;
+        this.angle += diff * turnRate;
+
+        // 前進
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+
+        this.x = Math.max(20, Math.min(w - 20, this.x));
+        this.y = Math.max(20, Math.min(h - 20, this.y));
+
+        this.wiggle += this.wiggleSpeed;
+
+        // 多関節追従の更新
+        this.segments[0].x = this.x;
+        this.segments[0].y = this.y;
+        this.segments[0].angle = this.angle;
+
+        for (let i = 1; i < this.numSegments; i++) {
+          const prev = this.segments[i - 1];
+          const curr = this.segments[i];
+          const dx = curr.x - prev.x;
+          const dy = curr.y - prev.y;
+          const wave = Math.sin(this.wiggle - i * 0.55) * (0.05 + i * 0.035);
+          curr.angle = Math.atan2(dy, dx) + wave;
+          curr.x = prev.x + Math.cos(curr.angle) * this.segDist;
+          curr.y = prev.y + Math.sin(curr.angle) * this.segDist;
+        }
+      }
+
+      draw(ctx, isDark) {
+        ctx.save();
+
+        const head = this.segments[0];
+        const chest = this.segments[1];
+        const tail = this.segments[this.segments.length - 1];
+
+        // サメのグロー光彩
+        if (isDark) {
+          ctx.shadowColor = '#06b6d4';
+          ctx.shadowBlur = this.boostTimer > 0 ? 22 : 14;
+        } else {
+          ctx.shadowColor = 'rgba(2, 132, 199, 0.4)';
+          ctx.shadowBlur = 10;
+        }
+
+        // --- 1. 胸ビレ（左右） ---
+        ctx.save();
+        ctx.translate(chest.x, chest.y);
+        ctx.rotate(chest.angle);
+        const finWave = Math.sin(this.wiggle) * 0.15;
+        // 左胸ビレ
+        ctx.beginPath();
+        ctx.moveTo(0, -this.width * 0.45);
+        ctx.lineTo(-28, -this.width * 1.55 - finWave * 8);
+        ctx.lineTo(-12, -this.width * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = isDark ? '#0891b2' : '#0284c7';
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // 右胸ビレ
+        ctx.beginPath();
+        ctx.moveTo(0, this.width * 0.45);
+        ctx.lineTo(-28, this.width * 1.55 + finWave * 8);
+        ctx.lineTo(-12, this.width * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = isDark ? '#0891b2' : '#0284c7';
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+
+        // --- 2. 尾ビレ（Caudal fin） ---
+        ctx.save();
+        ctx.translate(tail.x, tail.y);
+        ctx.rotate(tail.angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-18, -32, -32, -42);
+        ctx.quadraticCurveTo(-22, -18, -14, 0);
+        ctx.quadraticCurveTo(-20, 20, -28, 28);
+        ctx.quadraticCurveTo(-14, 12, 0, 0);
+        ctx.closePath();
+        ctx.fillStyle = isDark ? '#0284c7' : '#0ea5e9';
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // --- 3. 胴体（なだらかな流線型） ---
+        const widths = [14, 20, 19, 16, 12, 8, 4];
+        const leftPoints = [];
+        const rightPoints = [];
+
+        for (let i = 0; i < this.numSegments; i++) {
+          const seg = this.segments[i];
+          const w = widths[i];
+          const normAngle = seg.angle + Math.PI / 2;
+          leftPoints.push({
+            x: seg.x + Math.cos(normAngle) * w,
+            y: seg.y + Math.sin(normAngle) * w
+          });
+          rightPoints.push({
+            x: seg.x - Math.cos(normAngle) * w,
+            y: seg.y - Math.sin(normAngle) * w
+          });
+        }
+
+        ctx.beginPath();
+        const noseX = head.x + Math.cos(head.angle) * 26;
+        const noseY = head.y + Math.sin(head.angle) * 26;
+        ctx.moveTo(noseX, noseY);
+
+        for (let i = 0; i < leftPoints.length; i++) {
+          ctx.lineTo(leftPoints[i].x, leftPoints[i].y);
+        }
+        ctx.lineTo(tail.x, tail.y);
+        for (let i = rightPoints.length - 1; i >= 0; i--) {
+          ctx.lineTo(rightPoints[i].x, rightPoints[i].y);
+        }
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(noseX, noseY, tail.x, tail.y);
+        if (isDark) {
+          grad.addColorStop(0, '#06b6d4');
+          grad.addColorStop(0.3, '#0284c7');
+          grad.addColorStop(0.7, '#075985');
+          grad.addColorStop(1, '#0c4a6e');
+        } else {
+          grad.addColorStop(0, '#38bdf8');
+          grad.addColorStop(0.3, '#0284c7');
+          grad.addColorStop(0.7, '#0369a1');
+          grad.addColorStop(1, '#075985');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = isDark ? '#67e8f9' : '#0284c7';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        // --- 4. 背ビレ ---
+        ctx.save();
+        ctx.translate(chest.x, chest.y);
+        ctx.rotate(chest.angle);
+        ctx.beginPath();
+        ctx.moveTo(8, -6);
+        ctx.quadraticCurveTo(-14, -28, -26, -34);
+        ctx.quadraticCurveTo(-18, -12, -18, -4);
+        ctx.closePath();
+        ctx.fillStyle = isDark ? '#0ea5e9' : '#0369a1';
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // --- 5. サイバー発光ライン & エラ & 目 ---
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(head.x, head.y);
+        for (let i = 1; i < this.numSegments; i++) {
+          ctx.lineTo(this.segments[i].x, this.segments[i].y);
+        }
+        ctx.strokeStyle = isDark ? '#22d3ee' : '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.translate(head.x, head.y);
+        ctx.rotate(head.angle);
+
+        // エラ（3スリット）
+        for (let k = 0; k < 3; k++) {
+          const gx = -6 - k * 5;
+          ctx.beginPath();
+          ctx.moveTo(gx, -10);
+          ctx.lineTo(gx - 2, 0);
+          ctx.moveTo(gx, 10);
+          ctx.lineTo(gx - 2, 0);
+          ctx.strokeStyle = isDark ? '#67e8f9' : '#bae6fd';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        // 目（左右）
+        const eyeColor = isDark ? '#f43f5e' : '#e11d48';
+        ctx.beginPath();
+        ctx.arc(8, -9, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = eyeColor;
+        ctx.shadowColor = eyeColor;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(9, -9.5, 1, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(8, 9, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = eyeColor;
+        ctx.shadowColor = eyeColor;
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(9, 8.5, 1, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.restore();
+
+        ctx.restore();
+      }
+    }
+
+    function initOceanCanvas() {
+      oceanCanvas = document.getElementById('oceanCanvas');
+      if (!oceanCanvas) return;
+      oceanCtx = oceanCanvas.getContext('2d');
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        oceanCanvas.width = window.innerWidth * dpr;
+        oceanCanvas.height = window.innerHeight * dpr;
+        oceanCanvas.style.width = window.innerWidth + 'px';
+        oceanCanvas.style.height = window.innerHeight + 'px';
+        oceanCtx.setTransform(1, 0, 0, 1, 0, 0);
+        oceanCtx.scale(dpr, dpr);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      cyberShark = new AquaAkulaShark(window.innerWidth, window.innerHeight);
+
+      for (let i = 0; i < 18; i++) {
+        bubbles.push(new DeepSeaBubble(
+          Math.random() * window.innerWidth,
+          Math.random() * window.innerHeight,
+          Math.random() * 3 + 1
+        ));
+      }
+
+      window.addEventListener('mousemove', e => {
+        mousePos.x = e.clientX;
+        mousePos.y = e.clientY;
+        mousePos.active = true;
+      });
+      window.addEventListener('mouseleave', () => {
+        mousePos.active = false;
+      });
+
+      window.addEventListener('click', e => {
+        if (!swimEnabled) return;
+        if (e.target.closest('button, input, select, textarea, .mailbox-panel, .settings-panel, .trainer-card, .quick-chip, .msg-bubble')) {
+          return;
+        }
+        foods.push(new SharkFood(e.clientX, e.clientY));
+        if (foods.length > 5) foods.shift();
+      });
+
+      const tgl = document.getElementById('swimToggle');
+      if (tgl) {
+        const saved = localStorage.getItem('blackshark_swim_enabled');
+        if (saved !== null) {
+          swimEnabled = saved === 'true';
+          tgl.checked = swimEnabled;
+        }
+        tgl.addEventListener('change', e => {
+          swimEnabled = e.target.checked;
+          try {
+            localStorage.setItem('blackshark_swim_enabled', swimEnabled ? 'true' : 'false');
+          } catch (err) {}
+          if (!swimEnabled) {
+            oceanCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          }
+        });
+      }
+
+      function loop() {
+        if (swimEnabled) {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          oceanCtx.clearRect(0, 0, w, h);
+
+          const isDark = document.documentElement.dataset.theme === 'dark';
+
+          if (bubbles.length < 24 && Math.random() < 0.05) {
+            bubbles.push(new DeepSeaBubble(
+              Math.random() * w,
+              h + 10,
+              Math.random() * 3 + 1.2
+            ));
+          }
+
+          bubbles = bubbles.filter(b => {
+            const alive = b.update();
+            if (alive) b.draw(oceanCtx, isDark);
+            return alive;
+          });
+
+          foods = foods.filter(f => {
+            const alive = f.update();
+            if (alive) f.draw(oceanCtx, isDark);
+            return alive;
+          });
+
+          cyberShark.update(w, h);
+          cyberShark.draw(oceanCtx, isDark);
+        }
+        animFrameId = requestAnimationFrame(loop);
+      }
+
+      loop();
+    }
+
+    function triggerSharkBoost() {
+      if (cyberShark) {
+        cyberShark.boost();
+      }
+    }
+
+    function init() {
+      document.getElementById('sendBtn').addEventListener('click', sendUserMessage);
+      document.getElementById('dictBtn').addEventListener('click', () => {
+        setDictArmed(!dictSearchArmed);
+        document.getElementById('userInput').focus();
+      });
+      document.getElementById('userInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendUserMessage();
+      });
+      document.getElementById('trainerHeader').addEventListener('click', toggleTrainer);
+      document.getElementById('learnBtn').addEventListener('click', teachShark);
+      document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+
+      applyTheme('light');
+      setLang('ja');
+      initOceanCanvas();
+    }
+
+    init();
+  </script>
+</body>
+</html>
